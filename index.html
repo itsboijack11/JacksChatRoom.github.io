@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Chat App with Profile Pic</title>
+  <style>
+    body { font-family: Arial; max-width: 700px; margin: auto; padding: 20px; }
+    #messages { border: 1px solid #ccc; height: 300px; overflow-y: scroll; padding: 10px; margin-top: 10px; }
+    #messageInput { width: 70%; }
+    .hidden { display: none; }
+    .chat-tab { cursor: pointer; padding: 5px; margin-right: 5px; background: #ddd; border-radius: 5px; display: inline-block; }
+    .chat-tab.active { background: #bbb; }
+    .msg { margin-bottom: 10px; display: flex; align-items: center; }
+    .msg img { width: 32px; height: 32px; border-radius: 50%; margin-right: 10px; }
+    #typingIndicator { font-style: italic; color: #666; margin-top: 5px; height: 16px; }
+  </style>
+</head>
+<body>
+
+<h2>Chat app</h2>
+
+<!-- Auth -->
+<div id="authSection">
+  <input id="email" placeholder="Email" /><br />
+  <input id="password" type="password" placeholder="Password" /><br />
+  <input id="displayName" placeholder="Username (register only)" /><br />
+  <input id="profilePic" type="file" accept="png/*" /><br />
+  <button onclick="register()">Register</button>
+  <button onclick="login()">Login</button>
+</div>
+
+<!-- Chat -->
+<div id="chatSection" class="hidden">
+  <p>Welcome, <span id="userDisplay"></span>! <button onclick="logout()">Logout</button></p>
+
+  <div>
+    <input id="targetUsername" placeholder="Enter username to chat" />
+    <button onclick="startPrivateChat()">Start Chat</button>
+  </div>
+
+  <div id="chatTabs"></div>
+
+  <div id="messages"></div>
+  <div id="typingIndicator"></div>
+  <input id="messageInput" placeholder="Type your message..." oninput="sendTypingStatus(true)" />
+  <button onclick="sendMessage()">Send</button>
+</div>
+
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-storage-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-messaging-compat.js"></script>
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyAqi9ei8fWTF4cIVlfYsdX0jA6WAAazW5s",
+    authDomain: "chat-app-2-5894e.firebaseapp.com",
+    databaseURL: "https://chat-app-2-5894e-default-rtdb.firebaseio.com",
+    projectId: "chat-app-2-5894e",
+    storageBucket: "chat-app-2-5894e.appspot.com",
+    messagingSenderId: "993534384345",
+    appId: "1:993534384345:web:1b7615224c5d8d457606c8",
+    measurementId: "G-ELRMZ8WZ0C"
+  };
+
+  firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+  const db = firebase.database();
+  const storage = firebase.storage();
+
+  let currentUser = null;
+  let username = "";
+  let profilePicURL = "";
+
+  const usersRef = db.ref("users");
+
+  function register() {
+    const email = document.getElementById("email").value;
+    const pass = document.getElementById("password").value;
+    const uname = document.getElementById("displayName").value;
+    const pic = document.getElementById("profilePic").files[0];
+
+    if (!email || !pass || !uname) return alert("Fill all fields");
+
+    auth.createUserWithEmailAndPassword(email, pass)
+      .then(cred => {
+        if (pic) {
+          const picRef = storage.ref("profilePics/" + cred.user.uid);
+          return picRef.put(pic).then(() => picRef.getDownloadURL())
+            .then(url => {
+              return usersRef.child(cred.user.uid).set({
+                username: uname,
+                profilePic: url
+              });
+            });
+        } else {
+          return usersRef.child(cred.user.uid).set({ username: uname, profilePic: "" });
+        }
+      })
+      .catch(err => alert(err.message));
+  }
+
+  function login() {
+    const email = document.getElementById("email").value;
+    const pass = document.getElementById("password").value;
+    auth.signInWithEmailAndPassword(email, pass)
+      .catch(err => alert(err.message));
+  }
+
+  function logout() {
+    auth.signOut();
+  }
+
+  auth.onAuthStateChanged(user => {
+    if (user) {
+      currentUser = user;
+      document.getElementById("authSection").classList.add("hidden");
+      document.getElementById("chatSection").classList.remove("hidden");
+
+      usersRef.child(user.uid).once("value").then(snapshot => {
+        const data = snapshot.val();
+        username = data.username;
+        profilePicURL = data.profilePic || "";
+        document.getElementById("userDisplay").textContent = username;
+      });
+    } else {
+      currentUser = null;
+      document.getElementById("authSection").classList.remove("hidden");
+      document.getElementById("chatSection").classList.add("hidden");
+    }
+  });
+</script>
+<script>
+  let currentChatUser = null;
+  const messageInput = document.getElementById("messageInput");
+  const messagesDiv = document.getElementById("messages");
+  const typingIndicator = document.getElementById("typingIndicator");
+  const chatTabs = document.getElementById("chatTabs");
+
+  const typingRef = db.ref("typing");
+
+  function startPrivateChat() {
+    const targetName = document.getElementById("targetUsername").value.trim();
+    if (!targetName || targetName === username) return;
+
+    usersRef.once("value").then(snapshot => {
+      let targetID = null, targetPic = "";
+      snapshot.forEach(child => {
+        if (child.val().username === targetName) {
+          targetID = child.key;
+          targetPic = child.val().profilePic;
+        }
+      });
+
+      if (!targetID) return alert("User not found");
+
+      currentChatUser = { id: targetID, username: targetName, pic: targetPic };
+      setupChatTab(targetName);
+      loadMessages();
+    });
+  }
+
+  function setupChatTab(name) {
+    // Avoid duplicate tabs
+    const existing = document.querySelector(`.chat-tab[data-name="${name}"]`);
+    if (existing) {
+      document.querySelectorAll(".chat-tab").forEach(t => t.classList.remove("active"));
+      existing.classList.add("active");
+      return;
+    }
+
+    const tab = document.createElement("span");
+    tab.className = "chat-tab active";
+    tab.dataset.name = name;
+    tab.textContent = name;
+    document.querySelectorAll(".chat-tab").forEach(t => t.classList.remove("active"));
+    tab.onclick = () => {
+      currentChatUser = { username: name };
+      startPrivateChat();
+    };
+    chatTabs.appendChild(tab);
+  }
+
+  function chatRoomId(user1, user2) {
+    return [user1, user2].sort().join("_");
+  }
+
+  function loadMessages() {
+    messagesDiv.innerHTML = "";
+    const roomId = chatRoomId(username, currentChatUser.username);
+    const msgRef = db.ref("messages/" + roomId);
+
+    msgRef.off();
+    msgRef.on("child_added", snapshot => {
+      const msg = snapshot.val();
+      const msgEl = document.createElement("div");
+      msgEl.className = "msg";
+      msgEl.innerHTML = `
+        <img src="${msg.profilePic || 'https://via.placeholder.com/32'}" />
+        <b>${msg.sender}:</b> ${msg.text}
+      `;
+      messagesDiv.appendChild(msgEl);
+      messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    });
+
+    // Typing indicator
+    typingRef.child(roomId).on("value", snap => {
+      const isTyping = snap.val();
+      typingIndicator.textContent = isTyping && isTyping !== username ? "..." : "";
+    });
+  }
+
+  function sendMessage() {
+    const text = messageInput.value.trim();
+    if (!text || !currentChatUser) return;
+
+    const roomId = chatRoomId(username, currentChatUser.username);
+    const msgRef = db.ref("messages/" + roomId);
+    msgRef.push({
+      sender: username,
+      text,
+      profilePic: profilePicURL,
+      timestamp: Date.now()
+    });
+
+    sendTypingStatus(false);
+    messageInput.value = "";
+  }
+
+  let typingTimeout;
+  function sendTypingStatus(isTyping) {
+    if (!currentChatUser) return;
+    const roomId = chatRoomId(username, currentChatUser.username);
+    typingRef.child(roomId).set(isTyping ? username : "");
+
+    clearTimeout(typingTimeout);
+    if (isTyping) {
+      typingTimeout = setTimeout(() => {
+        typingRef.child(roomId).set("");
+      }, 3000);
+    }
+  }
+</script>
+<script>
+  // Request permission on load
+  if ("Notification" in window && Notification.permission !== "granted") {
+    Notification.requestPermission();
+  }
+
+  // Show notification if message is in an inactive chat
+  function notifyIfNeeded(message) {
+    if (!document.hasFocus() || !currentChatUser || message.sender !== username) {
+      if (Notification.permission === "granted") {
+        new Notification(`💬 ${message.sender}`, {
+          body: message.text,
+          icon: message.profilePic || "https://via.placeholder.com/64"
+        });
+      }
+    }
+  }
+
+  // Update this inside loadMessages() to include:
+  function loadMessages() {
+    messagesDiv.innerHTML = "";
+    const roomId = chatRoomId(username, currentChatUser.username);
+    const msgRef = db.ref("messages/" + roomId);
+
+    msgRef.off();
+    msgRef.on("child_added", snapshot => {
+      const msg = snapshot.val();
+
+      // Show browser notification
+      notifyIfNeeded(msg);
+
+      const msgEl = document.createElement("div");
+      msgEl.className = "msg";
+      msgEl.innerHTML = `
+        <img src="${msg.profilePic || 'https://via.placeholder.com/32'}" />
+        <b>${msg.sender}:</b> ${msg.text}
+      `;
+      messagesDiv.appendChild(msgEl);
+      messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    });
+
+    typingRef.child(roomId).on("value", snap => {
+      const isTyping = snap.val();
+      typingIndicator.textContent = isTyping && isTyping !== username ? "..." : "";
+    });
+  }
+</script>
+</body>
+</html>

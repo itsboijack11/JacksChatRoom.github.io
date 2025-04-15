@@ -93,10 +93,39 @@
       margin-bottom: 10px;
       width: 100%;
     }
+
+   /* User's message (white and bold) */
+.user-message {
+  font-weight: bold;
+  color: white;
+}
+
+/* Other user's message (normal, white) */
+.other-message {
+  font-weight: normal;
+  color: white;
+}
+
+.active-user {
+  font-weight: bold;
+  color: blue;
+  text-transform: uppercase;
+}
+
+/* Chat tab styling */
+.chat-tab.active {
+  font-weight: bold;
+  color: white;
+  background-color: #333;
+}
+
+}
+   
   </style>
 </head>
 <body>
 
+<!-- Auth -->
 <div id="authSection">
   <input id="email" placeholder="Email" /><br />
   <input id="password" type="password" placeholder="Password" /><br />
@@ -106,6 +135,7 @@
   <button onclick="login()">Login</button>
 </div>
 
+<!-- Chat -->
 <div id="chatSection" class="hidden">
   <p class="welcome">Welcome, <span id="userDisplay"></span>! <button onclick="logout()">Logout</button></p>
 
@@ -116,6 +146,17 @@
 
   <h4>Your Friends</h4>
   <ul id="friendsList"></ul>
+
+  <!-- Group Chat UI -->
+  <div style="margin-top: 20px;">
+    <h4>Create Group Chat</h4>
+    <input id="groupName" placeholder="Group Name" />
+    <input id="groupMembers" placeholder="Comma-separated usernames" />
+    <button onclick="createGroup()">Create Group</button>
+  </div>
+
+  <h4>Your Groups</h4>
+  <ul id="groupList"></ul>
 
   <div id="chatTabs"></div>
   <div id="messages"></div>
@@ -136,11 +177,13 @@
   </div>
 </div>
 
+<!-- Firebase SDK -->
 <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-storage-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-messaging-compat.js"></script>
+
 <script>
   const firebaseConfig = {
     apiKey: "AIzaSyAqi9ei8fWTF4cIVlfYsdX0jA6WAAazW5s",
@@ -164,12 +207,21 @@
   let username = "";
   let profilePicURL = "";
   let currentChatUser = null;
+  let currentGroupId = null;
+
+  const messageInput = document.getElementById("messageInput");
+  const messagesDiv = document.getElementById("messages");
+  const typingIndicator = document.getElementById("typingIndicator");
+  const chatTabs = document.getElementById("chatTabs");
 
   function clearChat() {
-    const messagesDiv = document.getElementById("messages");
     messagesDiv.innerHTML = "";
-    const roomId = chatRoomId(username, currentChatUser.username);
-    db.ref("messages/" + roomId).remove();
+    if (currentGroupId) {
+      db.ref("groupMessages/" + currentGroupId).remove();
+    } else if (currentChatUser) {
+      const roomId = chatRoomId(username, currentChatUser.username);
+      db.ref("messages/" + roomId).remove();
+    }
   }
 
   function register() {
@@ -177,24 +229,14 @@
     const pass = document.getElementById("password").value;
     const uname = document.getElementById("displayName").value;
     const pic = document.getElementById("profilePic").files[0];
-
     if (!email || !pass || !uname) return alert("Fill all fields");
-
     auth.createUserWithEmailAndPassword(email, pass).then(cred => {
       if (pic) {
         const reader = new FileReader();
-        reader.onload = function () {
-          usersRef.child(cred.user.uid).set({
-            username: uname,
-            profilePic: reader.result
-          });
-        };
+        reader.onload = () => usersRef.child(cred.user.uid).set({ username: uname, profilePic: reader.result });
         reader.readAsDataURL(pic);
       } else {
-        return usersRef.child(cred.user.uid).set({
-          username: uname,
-          profilePic: ""
-        });
+        usersRef.child(cred.user.uid).set({ username: uname, profilePic: "" });
       }
     }).catch(err => alert(err.message));
   }
@@ -206,12 +248,14 @@
   }
 
   function logout() {
+  if (confirm("Are you sure you want to log out?")) {
     localStorage.removeItem("lastChatUser");
     auth.signOut();
   }
+}
 
-  function chatRoomId(user1, user2) {
-    return [user1, user2].sort().join("_");
+  function chatRoomId(u1, u2) {
+    return [u1, u2].sort().join("_");
   }
 
   function startPrivateChat() {
@@ -226,36 +270,66 @@
           targetPic = child.val().profilePic;
         }
       });
-
       if (!targetID) return alert("User not found");
-
       currentChatUser = { id: targetID, username: targetName, pic: targetPic };
+      currentGroupId = null;
       localStorage.setItem("lastChatUser", targetName);
       setupChatTab(targetName);
       loadMessages();
-
       usersRef.child(currentUser.uid).child("friends").child(targetID).set({ username: targetName, profilePic: targetPic });
-      usersRef.child(targetID).child("friends").child(currentUser.uid).set({ username: username, profilePic: profilePicURL });
+      usersRef.child(targetID).child("friends").child(currentUser.uid).set({ username, profilePic: profilePicURL });
       loadFriendsList();
     });
   }
 
   function loadFriendsList() {
-    const friendsList = document.getElementById("friendsList");
-    friendsList.innerHTML = "";
+  const friendsList = document.getElementById("friendsList");
+  friendsList.innerHTML = "";  // Clear existing list
 
-    usersRef.child(currentUser.uid).child("friends").once("value").then(snapshot => {
-      snapshot.forEach(child => {
-        const friend = child.val();
-        const li = document.createElement("li");
-        li.innerHTML = `
-          <img src="${friend.profilePic || 'https://via.placeholder.com/32'}" style="width:24px;height:24px;border-radius:50%;margin-right:5px;" />
-          <span style="cursor:pointer;color:blue;" onclick="chatWithFriend('${friend.username}')">${friend.username}</span>
-        `;
-        friendsList.appendChild(li);
-      });
+  usersRef.child(currentUser.uid).child("friends").once("value").then(snapshot => {
+    snapshot.forEach(child => {
+      const friend = child.val();
+      const li = document.createElement("li");
+      li.innerHTML = `
+        <img src="${friend.profilePic || 'https://via.placeholder.com/32'}"
+             style="width:24px;height:24px;border-radius:50%;margin-right:5px;" />
+        <span style="cursor:pointer;color:blue;" onclick="chatWithFriend('${friend.username}')">
+          ${friend.username}
+        </span>
+        <button onclick="removeFriend('${child.key}', '${friend.username}')" 
+                style="
+                  margin-left:10px;
+                  font-weight:bold;
+                  font-size:0.70em;
+                  text-transform:uppercase;
+                  color:red;
+                  background:none;
+                  border: 1px solid white;
+                  cursor:pointer;
+                ">
+          remove
+        </button>
+      `;
+      friendsList.appendChild(li);
     });
+  });
+}
+
+
+function removeFriend(friendId, friendUsername) {
+  if (confirm(`Are you sure you want to remove ${friendUsername} from your friends list? This cannot be undone.`)) {
+    usersRef.child(currentUser.uid).child("friends").child(friendId).remove()
+      .then(() => {
+        usersRef.child(friendId).child("friends").child(currentUser.uid).remove()
+          .then(() => {
+            alert(`${friendUsername} has been removed.`);
+            loadFriendsList();
+          })
+          .catch(error => alert("Error removing friend from their list: " + error.message));
+      })
+      .catch(error => alert("Error removing friend: " + error.message));
   }
+}
 
   function chatWithFriend(friendUsername) {
     document.getElementById("targetUsername").value = friendUsername;
@@ -263,135 +337,167 @@
   }
 
   function setupChatTab(name) {
-    const existing = document.querySelector(`.chat-tab[data-name="${name}"]`);
-    if (existing) {
-      document.querySelectorAll(".chat-tab").forEach(t => t.classList.remove("active"));
-      existing.classList.add("active");
-      return;
-    }
-
     const tab = document.createElement("span");
     tab.className = "chat-tab active";
-    tab.dataset.name = name;
     tab.textContent = name;
-    document.querySelectorAll(".chat-tab").forEach(t => t.classList.remove("active"));
     tab.onclick = () => {
-      currentChatUser = { username: name };
       document.getElementById("targetUsername").value = name;
       startPrivateChat();
     };
+    chatTabs.innerHTML = "";
     chatTabs.appendChild(tab);
   }
 
   function loadMessages() {
-    messagesDiv.innerHTML = "";
-    const roomId = chatRoomId(username, currentChatUser.username);
-    const msgRef = db.ref("messages/" + roomId);
-    msgRef.off();
-    msgRef.on("child_added", snapshot => {
-      const msg = snapshot.val();
-      notifyIfNeeded(msg);
-      const messageDate = new Date(msg.timestamp);
-      const timeString = `${messageDate.getHours().toString().padStart(2, '0')}:${messageDate.getMinutes().toString().padStart(2, '0')}`;
-      const msgEl = document.createElement("div");
-      msgEl.className = "msg";
-      msgEl.innerHTML = `
-        <img src="${msg.profilePic || 'https://via.placeholder.com/32'}" />
-        <b>${msg.sender}:</b> ${msg.text} <span class="time">${timeString}</span>
-      `;
-      messagesDiv.appendChild(msgEl);
-      messagesDiv.scrollTop = messagesDiv.scrollHeight;
-    });
-
-    typingRef.child(roomId).on("value", snap => {
-      typingIndicator.textContent = snap.val() && snap.val() !== username ? "..." : "";
-    });
-  }
+  messagesDiv.innerHTML = "";
+  const roomId = chatRoomId(username, currentChatUser.username);
+  const msgRef = db.ref("messages/" + roomId);
+  msgRef.off();
+  msgRef.on("child_added", snap => {
+    const msg = snap.val();
+    const time = new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const el = document.createElement("div");
+    el.className = "msg";
+    const isUserMessage = msg.sender === username;  // Check if this message is from the current user
+    el.innerHTML = `
+      <img src="${msg.profilePic || 'https://via.placeholder.com/32'}" />
+      <b class="${isUserMessage ? 'active-user' : ''}">${msg.sender}:</b>
+      <span class="${isUserMessage ? 'user-message' : 'other-message'}">${msg.text}</span>
+      <span class="time">${time}</span>
+    `;
+    messagesDiv.appendChild(el);
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+  });
+  typingRef.child(roomId).on("value", snap => {
+    typingIndicator.textContent = snap.val() && snap.val() !== username ? "..." : "";
+  });
+}
 
   function sendMessage() {
     const text = messageInput.value.trim();
-    if (!text || !currentChatUser) return;
-    const roomId = chatRoomId(username, currentChatUser.username);
-    const msgRef = db.ref("messages/" + roomId);
-    msgRef.push({ sender: username, text, profilePic: profilePicURL, timestamp: Date.now() });
-    sendTypingStatus(false);
+    if (!text) return;
+    const msg = { sender: username, text, profilePic: profilePicURL, timestamp: Date.now() };
+    if (currentGroupId) {
+      db.ref("groupMessages/" + currentGroupId).push(msg);
+    } else if (currentChatUser) {
+      const roomId = chatRoomId(username, currentChatUser.username);
+      db.ref("messages/" + roomId).push(msg);
+      sendTypingStatus(false);
+    }
     messageInput.value = "";
   }
 
-  let typingTimeout;
   function sendTypingStatus(isTyping) {
     if (!currentChatUser) return;
     const roomId = chatRoomId(username, currentChatUser.username);
     typingRef.child(roomId).set(isTyping ? username : "");
-    clearTimeout(typingTimeout);
-    if (isTyping) {
-      typingTimeout = setTimeout(() => typingRef.child(roomId).set(""), 3000);
-    }
+    if (isTyping) setTimeout(() => typingRef.child(roomId).set(""), 3000);
   }
 
-  function notifyIfNeeded(message) {
-    if (!document.hasFocus() || !currentChatUser || message.sender !== username) {
-      if (Notification.permission === "granted") {
-        new Notification(`💬 ${message.sender}`, {
-          body: message.text,
-          icon: message.profilePic || "https://via.placeholder.com/64"
-        });
-      }
-
-      // Show popup alert
-      alert(`${message.sender} has messaged you!`);
-    }
-  }
-
-  auth.onAuthStateChanged(user => {
-    if (user) {
-      currentUser = user;
-      document.getElementById("authSection").classList.add("hidden");
-      document.getElementById("chatSection").classList.remove("hidden");
-
-      usersRef.child(user.uid).once("value").then(snapshot => {
-        const data = snapshot.val();
-        username = data.username;
-        profilePicURL = data.profilePic || "";
-        document.getElementById("userDisplay").textContent = username;
-
-        if (Notification.permission !== "granted") {
-          Notification.requestPermission();
+  function createGroup() {
+    const name = document.getElementById("groupName").value.trim();
+    const usernames = document.getElementById("groupMembers").value.split(",").map(u => u.trim()).filter(Boolean);
+    if (!name || usernames.length < 2) return alert("Enter group name and at least 2 members.");
+    usernames.push(username);
+    usersRef.once("value").then(snap => {
+      const members = {};
+      snap.forEach(child => {
+        if (usernames.includes(child.val().username)) {
+          members[child.key] = true;
         }
-
-        const lastUser = localStorage.getItem("lastChatUser");
-        if (lastUser) {
-          document.getElementById("targetUsername").value = lastUser;
-          startPrivateChat();
-        }
-
-        loadFriendsList();
       });
-    } else {
-      currentUser = null;
-      document.getElementById("authSection").classList.remove("hidden");
-      document.getElementById("chatSection").classList.add("hidden");
-    }
+      if (Object.keys(members).length < 2) return alert("Some members not found.");
+      db.ref("groups").push({ name, members }).then(() => {
+        alert("Group created!");
+        loadGroupList();
+      });
+    });
+  }
+
+  function loadGroupList() {
+  const list = document.getElementById("groupList");
+  list.innerHTML = "";
+
+  db.ref("groups").once("value").then(snap => {
+    snap.forEach(groupSnap => {
+      const group = groupSnap.val();
+      const groupId = groupSnap.key;
+
+      if (group.members[currentUser.uid]) {
+        const li = document.createElement("li");
+
+        li.innerHTML = `
+          <span style="cursor:pointer;color:green;"
+                onclick="enterGroupChat('${groupId}', '${group.name}')">
+            ${group.name}
+          </span>
+          <button onclick="deleteGroupChat('${groupId}', '${group.name}')"
+                  style="
+                    margin-left:10px;
+                    font-weight:bold;
+                    font-size:0.7em;
+                    text-transform:uppercase;
+                    color:red;
+                    background:none;
+                    border: 1px solid white;
+                    cursor:pointer;
+                  ">
+            Delete
+          </button>
+        `;
+        list.appendChild(li);
+      }
+    });
   });
+}
+
+
+// New deleteGroup function
+function deleteGroupChat(groupId, groupName) {
+  if (confirm(`Are you sure you want to delete the group "${groupName}"? This action cannot be undone.`)) {
+    db.ref("groups/" + groupId).remove()
+      .then(() => {
+        db.ref("groupMessages/" + groupId).remove();
+        alert(`Group "${groupName}" has been deleted.`);
+        loadGroupList();
+        messagesDiv.innerHTML = "";
+        chatTabs.innerHTML = "";
+      })
+      .catch(error => alert("Error deleting group: " + error.message));
+  }
+}
+
+
+  function enterGroupChat(groupId, groupName) {
+    currentGroupId = groupId;
+    currentChatUser = null;
+    chatTabs.innerHTML = `<span class="chat-tab active">${groupName}</span>`;
+    messagesDiv.innerHTML = "";
+    const msgRef = db.ref("groupMessages/" + groupId);
+    msgRef.off();
+    msgRef.on("child_added", snap => {
+      const msg = snap.val();
+      const time = new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      const el = document.createElement("div");
+      el.className = "msg";
+      el.innerHTML = `<img src="${msg.profilePic || 'https://via.placeholder.com/32'}" /><b>${msg.sender}:</b> ${msg.text} <span class="time">${time}</span>`;
+      messagesDiv.appendChild(el);
+      messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    });
+  }
 
   function changePassword() {
     const email = prompt("Enter your email to receive a reset link:");
-    if (!email) return;
-    auth.sendPasswordResetEmail(email)
-      .then(() => alert("Password reset email sent!"))
-      .catch(err => alert("Error: " + err.message));
+    if (email) auth.sendPasswordResetEmail(email).then(() => alert("Password reset sent!")).catch(err => alert(err.message));
   }
 
   function deleteAccount() {
-    if (confirm("Are you sure you want to delete your account? This action cannot be undone.")) {
-      const uid = currentUser.uid;
-      usersRef.child(uid).remove().then(() => {
-        currentUser.delete()
-          .then(() => {
-            alert("Account deleted.");
-            logout();
-          })
-          .catch(err => alert("Please re-authenticate and try again."));
+    if (confirm("Delete account? This can't be undone.")) {
+      usersRef.child(currentUser.uid).remove().then(() => {
+        currentUser.delete().then(() => {
+          alert("Account deleted.");
+          logout();
+        }).catch(err => alert("Re-login and try again."));
       });
     }
   }
@@ -403,16 +509,35 @@
   }
 
   window.addEventListener("load", () => {
-    const darkMode = localStorage.getItem("darkMode") === "true";
-    document.getElementById("darkModeToggle").checked = darkMode;
-    document.body.classList.toggle("dark-mode", darkMode);
+    const dark = localStorage.getItem("darkMode") === "true";
+    document.getElementById("darkModeToggle").checked = dark;
+    document.body.classList.toggle("dark-mode", dark);
   });
 
-  const messageInput = document.getElementById("messageInput");
-  const messagesDiv = document.getElementById("messages");
-  const typingIndicator = document.getElementById("typingIndicator");
-  const chatTabs = document.getElementById("chatTabs");
+  auth.onAuthStateChanged(user => {
+    if (user) {
+      currentUser = user;
+      document.getElementById("authSection").classList.add("hidden");
+      document.getElementById("chatSection").classList.remove("hidden");
+      usersRef.child(user.uid).once("value").then(snap => {
+        const data = snap.val();
+        username = data.username;
+        profilePicURL = data.profilePic || "";
+        document.getElementById("userDisplay").textContent = username;
+        const lastUser = localStorage.getItem("lastChatUser");
+        if (lastUser) {
+          document.getElementById("targetUsername").value = lastUser;
+          startPrivateChat();
+        }
+        loadFriendsList();
+        loadGroupList();
+      });
+    } else {
+      currentUser = null;
+      document.getElementById("authSection").classList.remove("hidden");
+      document.getElementById("chatSection").classList.add("hidden");
+    }
+  });
 </script>
 </body>
 </html>
-     

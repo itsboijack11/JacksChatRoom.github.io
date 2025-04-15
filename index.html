@@ -1,9 +1,12 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Jacks Chat Room</title>
+  <link rel="icon" type="image/x-icon" href="/images/favicon.ico" />
   <style>
-    body { font-family: Arial; max-width: 700px; margin: auto; padding: 20px; }
+    body { font-family: Arial; max-width: 700px; margin: auto; padding: 20px; transition: background 0.3s, color 0.3s; }
     #messages { border: 1px solid #ccc; height: 300px; overflow-y: scroll; padding: 10px; margin-top: 10px; }
     #messageInput { width: 70%; }
     .hidden { display: none; }
@@ -11,15 +14,89 @@
     .chat-tab.active { background: #bbb; }
     .msg { margin-bottom: 10px; display: flex; align-items: center; }
     .msg img { width: 32px; height: 32px; border-radius: 50%; margin-right: 10px; }
+    .time { font-size: 0.8em; color: #777; margin-left: 10px; }
     #typingIndicator { font-style: italic; color: #666; margin-top: 5px; height: 16px; }
-    #friendsList img { vertical-align: middle; }
+
+    .search-bar-container {
+      display: flex;
+      justify-content: space-between;
+      width: 50%;
+      margin: 20px auto;
+    }
+
+    #targetUsername {
+      flex: 1;
+      padding: 5px;
+    }
+
+    #startChatButton {
+      padding: 5px 10px;
+      cursor: pointer;
+    }
+
+    #friendsList {
+      display: flex;
+      overflow-x: auto;
+      white-space: nowrap;
+      padding: 10px 0;
+    }
+
+    #friendsList li {
+      margin-right: 10px;
+      list-style: none;
+    }
+
+    #friendsList img {
+      vertical-align: middle;
+    }
+
+    .welcome {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+    }
+
+    body.dark-mode {
+      background-color: #121212;
+      color: #f0f0f0;
+    }
+
+    body.dark-mode #messages {
+      background-color: #1e1e1e;
+      border-color: #444;
+    }
+
+    body.dark-mode input,
+    body.dark-mode button {
+      background-color: #2c2c2c;
+      color: #fff;
+      border: 1px solid #555;
+    }
+
+    #settingsPanel {
+      position: fixed;
+      right: 20px;
+      top: 100px;
+      width: 200px;
+      background: #f5f5f5;
+      border: 1px solid #ccc;
+      padding: 10px;
+      border-radius: 8px;
+    }
+
+    body.dark-mode #settingsPanel {
+      background: #2c2c2c;
+      border-color: #555;
+    }
+
+    #settingsPanel button, #settingsPanel label {
+      margin-bottom: 10px;
+      width: 100%;
+    }
   </style>
 </head>
 <body>
 
-<h2>Chat app</h2>
-
-<!-- Auth -->
 <div id="authSection">
   <input id="email" placeholder="Email" /><br />
   <input id="password" type="password" placeholder="Password" /><br />
@@ -29,27 +106,36 @@
   <button onclick="login()">Login</button>
 </div>
 
-<!-- Chat -->
 <div id="chatSection" class="hidden">
-  <p>Welcome, <span id="userDisplay"></span>! <button onclick="logout()">Logout</button></p>
+  <p class="welcome">Welcome, <span id="userDisplay"></span>! <button onclick="logout()">Logout</button></p>
 
-  <div>
-    <input id="targetUsername" placeholder="Enter username to chat" />
-    <button onclick="startPrivateChat()">Start Chat</button>
+  <div class="search-bar-container">
+    <input id="targetUsername" placeholder="Enter username to start a chat" />
+    <button id="startChatButton" onclick="startPrivateChat()">Start Chat</button>
   </div>
 
   <h4>Your Friends</h4>
   <ul id="friendsList"></ul>
 
   <div id="chatTabs"></div>
-
   <div id="messages"></div>
   <div id="typingIndicator"></div>
+
   <input id="messageInput" placeholder="Type your message..." oninput="sendTypingStatus(true)" />
   <button onclick="sendMessage()">Send</button>
+  <button onclick="clearChat()">Clear Chat</button>
+
+  <div id="settingsPanel">
+    <h4>Settings</h4>
+    <button onclick="changePassword()">Change Password</button><br />
+    <button onclick="deleteAccount()">Delete Account</button><br />
+    <label>
+      <input type="checkbox" id="darkModeToggle" onchange="toggleDarkMode()" />
+      Dark Mode
+    </label>
+  </div>
 </div>
 
-<!-- Firebase Scripts -->
 <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
@@ -79,6 +165,13 @@
   let profilePicURL = "";
   let currentChatUser = null;
 
+  function clearChat() {
+    const messagesDiv = document.getElementById("messages");
+    messagesDiv.innerHTML = "";
+    const roomId = chatRoomId(username, currentChatUser.username);
+    db.ref("messages/" + roomId).remove();
+  }
+
   function register() {
     const email = document.getElementById("email").value;
     const pass = document.getElementById("password").value;
@@ -87,33 +180,29 @@
 
     if (!email || !pass || !uname) return alert("Fill all fields");
 
-    auth.createUserWithEmailAndPassword(email, pass)
-      .then(cred => {
-        if (pic) {
-          // Dummy placeholder: Replace with your real upload
-          const reader = new FileReader();
-          reader.onload = function () {
-            usersRef.child(cred.user.uid).set({
-              username: uname,
-              profilePic: reader.result
-            });
-          };
-          reader.readAsDataURL(pic);
-        } else {
-          return usersRef.child(cred.user.uid).set({
+    auth.createUserWithEmailAndPassword(email, pass).then(cred => {
+      if (pic) {
+        const reader = new FileReader();
+        reader.onload = function () {
+          usersRef.child(cred.user.uid).set({
             username: uname,
-            profilePic: ""
+            profilePic: reader.result
           });
-        }
-      })
-      .catch(err => alert(err.message));
+        };
+        reader.readAsDataURL(pic);
+      } else {
+        return usersRef.child(cred.user.uid).set({
+          username: uname,
+          profilePic: ""
+        });
+      }
+    }).catch(err => alert(err.message));
   }
 
   function login() {
     const email = document.getElementById("email").value;
     const pass = document.getElementById("password").value;
-    auth.signInWithEmailAndPassword(email, pass)
-      .catch(err => alert(err.message));
+    auth.signInWithEmailAndPassword(email, pass).catch(err => alert(err.message));
   }
 
   function logout() {
@@ -145,21 +234,9 @@
       setupChatTab(targetName);
       loadMessages();
 
-      // ✅ Add each other as friends permanently
-      const currentUserRef = usersRef.child(currentUser.uid).child("friends").child(targetID);
-      const targetUserRef = usersRef.child(targetID).child("friends").child(currentUser.uid);
-
-      currentUserRef.set({
-        username: targetName,
-        profilePic: targetPic
-      });
-
-      targetUserRef.set({
-        username: username,
-        profilePic: profilePicURL
-      });
-
-      loadFriendsList(); // Re-load the friends list after adding a new friend
+      usersRef.child(currentUser.uid).child("friends").child(targetID).set({ username: targetName, profilePic: targetPic });
+      usersRef.child(targetID).child("friends").child(currentUser.uid).set({ username: username, profilePic: profilePicURL });
+      loadFriendsList();
     });
   }
 
@@ -210,40 +287,33 @@
     messagesDiv.innerHTML = "";
     const roomId = chatRoomId(username, currentChatUser.username);
     const msgRef = db.ref("messages/" + roomId);
-
     msgRef.off();
     msgRef.on("child_added", snapshot => {
       const msg = snapshot.val();
       notifyIfNeeded(msg);
+      const messageDate = new Date(msg.timestamp);
+      const timeString = `${messageDate.getHours().toString().padStart(2, '0')}:${messageDate.getMinutes().toString().padStart(2, '0')}`;
       const msgEl = document.createElement("div");
       msgEl.className = "msg";
       msgEl.innerHTML = `
         <img src="${msg.profilePic || 'https://via.placeholder.com/32'}" />
-        <b>${msg.sender}:</b> ${msg.text}
+        <b>${msg.sender}:</b> ${msg.text} <span class="time">${timeString}</span>
       `;
       messagesDiv.appendChild(msgEl);
       messagesDiv.scrollTop = messagesDiv.scrollHeight;
     });
 
     typingRef.child(roomId).on("value", snap => {
-      const isTyping = snap.val();
-      typingIndicator.textContent = isTyping && isTyping !== username ? "..." : "";
+      typingIndicator.textContent = snap.val() && snap.val() !== username ? "..." : "";
     });
   }
 
   function sendMessage() {
     const text = messageInput.value.trim();
     if (!text || !currentChatUser) return;
-
     const roomId = chatRoomId(username, currentChatUser.username);
     const msgRef = db.ref("messages/" + roomId);
-    msgRef.push({
-      sender: username,
-      text,
-      profilePic: profilePicURL,
-      timestamp: Date.now()
-    });
-
+    msgRef.push({ sender: username, text, profilePic: profilePicURL, timestamp: Date.now() });
     sendTypingStatus(false);
     messageInput.value = "";
   }
@@ -253,12 +323,23 @@
     if (!currentChatUser) return;
     const roomId = chatRoomId(username, currentChatUser.username);
     typingRef.child(roomId).set(isTyping ? username : "");
-
     clearTimeout(typingTimeout);
     if (isTyping) {
-      typingTimeout = setTimeout(() => {
-        typingRef.child(roomId).set("");
-      }, 3000);
+      typingTimeout = setTimeout(() => typingRef.child(roomId).set(""), 3000);
+    }
+  }
+
+  function notifyIfNeeded(message) {
+    if (!document.hasFocus() || !currentChatUser || message.sender !== username) {
+      if (Notification.permission === "granted") {
+        new Notification(`💬 ${message.sender}`, {
+          body: message.text,
+          icon: message.profilePic || "https://via.placeholder.com/64"
+        });
+      }
+
+      // Show popup alert
+      alert(`${message.sender} has messaged you!`);
     }
   }
 
@@ -274,13 +355,17 @@
         profilePicURL = data.profilePic || "";
         document.getElementById("userDisplay").textContent = username;
 
+        if (Notification.permission !== "granted") {
+          Notification.requestPermission();
+        }
+
         const lastUser = localStorage.getItem("lastChatUser");
         if (lastUser) {
           document.getElementById("targetUsername").value = lastUser;
           startPrivateChat();
         }
 
-        loadFriendsList(); // Load the friends list upon login
+        loadFriendsList();
       });
     } else {
       currentUser = null;
@@ -289,27 +374,45 @@
     }
   });
 
-  // Browser Notification
-  if ("Notification" in window && Notification.permission !== "granted") {
-    Notification.requestPermission();
+  function changePassword() {
+    const email = prompt("Enter your email to receive a reset link:");
+    if (!email) return;
+    auth.sendPasswordResetEmail(email)
+      .then(() => alert("Password reset email sent!"))
+      .catch(err => alert("Error: " + err.message));
   }
 
-  function notifyIfNeeded(message) {
-    if (!document.hasFocus() || !currentChatUser || message.sender !== username) {
-      if (Notification.permission === "granted") {
-        new Notification(`💬 ${message.sender}`, {
-          body: message.text,
-          icon: message.profilePic || "https://via.placeholder.com/64"
-        });
-      }
+  function deleteAccount() {
+    if (confirm("Are you sure you want to delete your account? This action cannot be undone.")) {
+      const uid = currentUser.uid;
+      usersRef.child(uid).remove().then(() => {
+        currentUser.delete()
+          .then(() => {
+            alert("Account deleted.");
+            logout();
+          })
+          .catch(err => alert("Please re-authenticate and try again."));
+      });
     }
   }
+
+  function toggleDarkMode() {
+    const isDark = document.getElementById("darkModeToggle").checked;
+    document.body.classList.toggle("dark-mode", isDark);
+    localStorage.setItem("darkMode", isDark);
+  }
+
+  window.addEventListener("load", () => {
+    const darkMode = localStorage.getItem("darkMode") === "true";
+    document.getElementById("darkModeToggle").checked = darkMode;
+    document.body.classList.toggle("dark-mode", darkMode);
+  });
 
   const messageInput = document.getElementById("messageInput");
   const messagesDiv = document.getElementById("messages");
   const typingIndicator = document.getElementById("typingIndicator");
   const chatTabs = document.getElementById("chatTabs");
 </script>
-
 </body>
 </html>
+     

@@ -163,6 +163,7 @@
 <!-- Chat -->
 <div id="chatSection" class="hidden">
   <p class="welcome">Welcome, <span id="userDisplay"></span>! <button onclick="logout()">Logout</button></p>
+    <p id="onlineCount" style="font-weight: bold; color: lightgreen;">People Online: 0</p>
 
   <div class="search-bar-container">
     <input id="targetUsername" placeholder="Enter username to start a chat" />
@@ -226,6 +227,18 @@
   const db = firebase.database();
   const storage = firebase.storage();
   const usersRef = db.ref("users");
+  const statusRef = db.ref("status");
+
+statusRef.on("value", snapshot => {
+  let onlineCount = 0;
+  snapshot.forEach(child => {
+    if (child.val().state === "online") {
+      onlineCount++;
+    }
+  });
+  document.getElementById("onlineCount").textContent = `People Online: ${onlineCount}`;
+});
+
   const typingRef = db.ref("typing");
 
   let currentUser = null;
@@ -552,6 +565,58 @@ function deleteGroupChat(groupId, groupName) {
   });
 
   auth.onAuthStateChanged(user => {
+  auth.onAuthStateChanged(user => {
+  if (user) {
+    currentUser = user;
+    document.getElementById("authSection").classList.add("hidden");
+    document.getElementById("chatSection").classList.remove("hidden");
+
+    const userStatusRef = db.ref("/status/" + user.uid);
+    const isOfflineForDatabase = {
+      state: "offline",
+      last_changed: firebase.database.ServerValue.TIMESTAMP,
+    };
+    const isOnlineForDatabase = {
+      state: "online",
+      last_changed: firebase.database.ServerValue.TIMESTAMP,
+    };
+
+    // Monitor connection state
+    const connectedRef = db.ref(".info/connected");
+    connectedRef.on("value", function (snap) {
+      if (snap.val() === false) {
+        return;
+      }
+
+      userStatusRef
+        .onDisconnect()
+        .set(isOfflineForDatabase)
+        .then(() => {
+          userStatusRef.set(isOnlineForDatabase);
+        });
+    });
+
+    // Existing logic
+    usersRef.child(user.uid).once("value").then(snap => {
+      const data = snap.val();
+      username = data.username;
+      profilePicURL = data.profilePic || "";
+      document.getElementById("userDisplay").textContent = username;
+      const lastUser = localStorage.getItem("lastChatUser");
+      if (lastUser) {
+        document.getElementById("targetUsername").value = lastUser;
+        startPrivateChat();
+      }
+      loadFriendsList();
+      loadGroupList();
+    });
+  } else {
+    currentUser = null;
+    document.getElementById("authSection").classList.remove("hidden");
+    document.getElementById("chatSection").classList.add("hidden");
+  }
+});
+
     if (user) {
       currentUser = user;
       document.getElementById("authSection").classList.add("hidden");

@@ -1,6 +1,31 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
+<head> 
+
+
+
+    <style>
+  .active-user {
+    font-weight: bold;
+    color: lightblue;
+  }
+
+  .other-username {
+    font-weight: bold;
+    color: lightblue;
+  }
+
+  .user-message {
+    color: white;
+    font-weight: normal;
+  }
+
+  .other-message {
+    color: white;
+    font-weight: normal;
+  }
+</style>
+  
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Jacks Chat Room</title>
@@ -476,14 +501,26 @@ function deleteGroupChat(groupId, groupName) {
     const msgRef = db.ref("groupMessages/" + groupId);
     msgRef.off();
     msgRef.on("child_added", snap => {
-      const msg = snap.val();
-      const time = new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      const el = document.createElement("div");
-      el.className = "msg";
-      el.innerHTML = `<img src="${msg.profilePic || 'https://via.placeholder.com/32'}" /><b>${msg.sender}:</b> ${msg.text} <span class="time">${time}</span>`;
-      messagesDiv.appendChild(el);
-      messagesDiv.scrollTop = messagesDiv.scrollHeight;
-    });
+  const msg = snap.val();
+  const time = new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const el = document.createElement("div");
+  el.className = "msg";
+
+  const isUserMessage = msg.sender === username;
+
+  el.innerHTML = `
+    <img src="${msg.profilePic || 'https://via.placeholder.com/32'}" />
+    <b class="${isUserMessage ? 'active-user' : 'other-username'}">${msg.sender}:</b>&nbsp;
+
+    <span class="${isUserMessage ? 'user-message' : 'other-message'}">${msg.text}</span>
+    <span class="time">${time}</span>
+  `;
+
+  messagesDiv.appendChild(el);
+  messagesDiv.scrollTop = messagesDiv.scrollHeight;
+});
+
+    
   }
 
   function changePassword() {

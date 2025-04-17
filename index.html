@@ -1,9 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head> 
-
-
-
+     
     <style>
   .active-user {
     font-weight: bold;
@@ -15,14 +13,18 @@
     color: lightblue;
   }
 
-  .user-message {
-    color: white;
-    font-weight: normal;
-  }
+.user-message {
+  font-weight: bold;
+  color: black; /* Default for light mode */
+}
 
-  .other-message {
-    color: white;
-    font-weight: normal;
+/* When dark mode is active */
+body.dark-mode .user-message {
+  color: white;
+}
+
+}
+
   }
 </style>
   
@@ -119,11 +121,7 @@
       width: 100%;
     }
 
-   /* User's message (white and bold) */
-.user-message {
-  font-weight: bold;
-  color: white;
-}
+
 
 /* Other user's message (normal, white) */
 .other-message {
@@ -137,14 +135,20 @@
   text-transform: uppercase;
 }
 
-/* Chat tab styling */
+/* Default light mode style */
 .chat-tab.active {
   font-weight: bold;
+  color: black;
+  background-color: ##e1e2e6; /* Dark white */
+}
+
+/* Dark mode override */
+body.dark-mode .chat-tab.active {
   color: white;
   background-color: #333;
 }
 
-}
+
    
   </style>
 </head>
@@ -399,7 +403,8 @@ function removeFriend(friendId, friendUsername) {
     const isUserMessage = msg.sender === username;  // Check if this message is from the current user
     el.innerHTML = `
       <img src="${msg.profilePic || 'https://via.placeholder.com/32'}" />
-      <b class="${isUserMessage ? 'active-user' : ''}">${msg.sender}:</b>
+      <b class="${isUserMessage ? 'active-user' : ''}">${isUserMessage ? 'You' : msg.sender}:</b>&nbsp;
+
       <span class="${isUserMessage ? 'user-message' : 'other-message'}">${msg.text}</span>
       <span class="time">${time}</span>
     `;
@@ -453,41 +458,43 @@ function removeFriend(friendId, friendUsername) {
   }
 
   function loadGroupList() {
-  const list = document.getElementById("groupList");
-  list.innerHTML = "";
+    const list = document.getElementById("groupList");
 
-  db.ref("groups").once("value").then(snap => {
-    snap.forEach(groupSnap => {
-      const group = groupSnap.val();
-      const groupId = groupSnap.key;
+    // Step 1: Clear the existing group list (to prevent duplicates)
+    list.innerHTML = ""; // Clears the old groups each time the function is called
 
-      if (group.members[currentUser.uid]) {
-        const li = document.createElement("li");
+    // Step 2: Fetch groups from Firebase (or wherever you store them)
+    db.ref("groups").once("value").then(snap => {
+        // Step 3: Loop over the groups and only append those that belong to the current user
+        snap.forEach(groupSnap => {
+            const group = groupSnap.val();
+            const groupId = groupSnap.key;
 
-        li.innerHTML = `
-          <span style="cursor:pointer;color:green;"
-                onclick="enterGroupChat('${groupId}', '${group.name}')">
-            ${group.name}
-          </span>
-          <button onclick="deleteGroupChat('${groupId}', '${group.name}')"
-                  style="
-                    margin-left:10px;
-                    font-weight:bold;
-                    font-size:0.7em;
-                    text-transform:uppercase;
-                    color:red;
-                    background:none;
-                    border: 1px solid white;
-                    cursor:pointer;
-                  ">
-            Delete
-          </button>
-        `;
-        list.appendChild(li);
-      }
+            // Step 4: Check if the current user is a member of the group
+            if (group.members && group.members[currentUser.uid]) {
+                const li = document.createElement("li");
+
+                // Step 5: Dynamically create the group name and the delete button
+                li.innerHTML = `
+                    <span style="cursor:pointer;color:green;" 
+                        onclick="enterGroupChat('${groupId}', '${group.name}')">
+                        ${group.name}
+                    </span>
+                    <button onclick="deleteGroupChat('${groupId}', '${group.name}')"
+                        style="margin-left:10px; font-weight:bold; font-size:0.7em; text-transform:uppercase; color:red; background:none; border: 1px solid white; cursor:pointer;">
+                        Delete
+                    </button>
+                `;
+                
+                // Step 6: Append the group to the list
+                list.appendChild(li);
+            }
+        });
+    }).catch(error => {
+        console.error("Error loading group list: ", error);
     });
-  });
 }
+
 
 
 // New deleteGroup function
@@ -523,7 +530,7 @@ function deleteGroupChat(groupId, groupName) {
 
   el.innerHTML = `
     <img src="${msg.profilePic || 'https://via.placeholder.com/32'}" />
-    <b class="${isUserMessage ? 'active-user' : 'other-username'}">${msg.sender}:</b>&nbsp;
+    <b class="${isUserMessage ? 'active-user' : 'other-username'}">${isUserMessage ? 'You' : msg.sender}:</b>&nbsp;
 
     <span class="${isUserMessage ? 'user-message' : 'other-message'}">${msg.text}</span>
     <span class="time">${time}</span>

@@ -26,3 +26,8 @@
 2. Removed Profile borders
 3. Fixed invisible messages in light mode
 4. Added pastable images
+5. Add user to existing groupchat function added
+6. Popup to add user to existing groupchat added
+7. Changed UI for delete groupchat button
+8. Changed UI for add user to groupchat button
+9. Changed UI for remove friend button

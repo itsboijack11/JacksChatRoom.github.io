@@ -7,6 +7,31 @@
   <link rel="icon" type="image/x-icon" href="/images/favicon.ico" />
   <style>
 
+/* Default (Light mode) Delete button */
+#groupList button.delete-group {
+  background-color: none; /* Black background */
+  color: red; /* Red text */
+}
+
+/* Dark mode Delete button */
+body.dark-mode #groupList button.delete-group {
+  background-color: none; /* White background */
+  color: red; /* Red text */
+}
+       
+/* Default (Light mode) button color */
+#groupList button.add-user {
+  background-color: none; /* Black button */
+  color: black; /* White text */
+}
+
+/* Dark mode button color */
+body.dark-mode #groupList button.add-user {
+  background-color: none; /* White button */
+  color: white; /* Black text */
+}
+
+       
 .active-user {
     font-weight: bold;
     color: lightblue;
@@ -567,13 +592,15 @@ function removeFriend(friendId, friendUsername) {
                         ${group.name}
                     </span>
                     <button onclick="deleteGroupChat('${groupId}', '${group.name}')"
-                        style="margin-left:10px; font-weight:bold; font-size:0.52em; text-transform:uppercase; color:red; background:none; border: 1px solid white; cursor:pointer;">
-                        Delete
-                    </button>
+    class="delete-group"
+    style="margin-left:10px; font-weight:bold; font-size:0.52em; text-transform:uppercase; cursor:pointer;">
+    Delete
+</button>
                     <button onclick="handleAddUserClick('${groupId}')"
-                        style="margin-left:10px; font-weight:bold; font-size:0.52em; text-transform:uppercase; color:green; background:none; border: 1px solid white; cursor:pointer;">
-                        +
-                    </button>
+    class="add-user"
+    style="margin-left:10px; font-weight:bold; font-size:0.52em; text-transform:uppercase; cursor:pointer;">
+    +
+</button>
                 `;
                 
                 // Append the group to the list

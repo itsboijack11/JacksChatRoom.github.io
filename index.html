@@ -26,6 +26,51 @@
 body.dark-mode .user-message {
   color: white;
 }
+
+/* Profile pictures (light mode) */
+#messages img:not(.pasted-image), 
+#friendsList img:not(.pasted-image) { 
+  border-radius: 50%;
+  border: 1px solid black;
+  box-shadow: 0 0 6px rgba(0, 0, 0, 0.2);
+}
+
+/* Profile pictures (dark mode) */
+body.dark-mode #messages img:not(.pasted-image),
+body.dark-mode #friendsList img:not(.pasted-image) {
+  border-color: white;
+  box-shadow: 0 0 6px rgba(255, 255, 255, 0.2);
+}
+
+/* Pasted images (light mode) */
+#messages img.pasted-image {
+  border: none;
+  border-radius: 1px;
+  max-width: 100%;
+  height: auto;
+  margin: 10px 0;
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Optional: Pasted image dark mode tweak */
+body.dark-mode #messages img.pasted-image {
+  box-shadow: 0 0 4px rgba(255, 255, 255, 0.1);
+}
+
+/* Force specific styling for images, increase specificity */
+body #messages img:not(.pasted-image),
+body #friendsList img:not(.pasted-image) {
+  border-radius: 50%;
+  border: 0px solid black !important;
+  box-shadow: 0 0 6px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* Force dark mode override for profile pictures */
+body.dark-mode #messages img:not(.pasted-image),
+body.dark-mode #friendsList img:not(.pasted-image) {
+  border-color: white !important;
+  box-shadow: 0 0 6px rgba(255, 255, 255, 0.2) !important;
+}
        
     body { font-family: Arial; max-width: 700px; margin: auto; padding: 20px; transition: background 0.3s, color 0.3s; }
     #messages { border: 1px solid #ccc; height: 300px; overflow-y: scroll; padding: 10px; margin-top: 10px; }
@@ -121,7 +166,7 @@ body.dark-mode .other-message {
 .chat-tab.active {
   font-weight: bold;
   color: black;
-  background-color: ##e1e2e6; /* Dark white */
+  background-color: #e1e2e6; /* Dark white */
 }
 /* Dark mode override */
 body.dark-mode .chat-tab.active {
@@ -261,10 +306,25 @@ statusRef.on("value", snapshot => {
   }
 
   function login() {
-    const email = document.getElementById("email").value;
-    const pass = document.getElementById("password").value;
-    auth.signInWithEmailAndPassword(email, pass).catch(err => alert(err.message));
-  }
+  const email = document.getElementById("email").value;
+  const pass = document.getElementById("password").value;
+  const pic = document.getElementById("profilePic").files[0];
+
+  auth.signInWithEmailAndPassword(email, pass)
+    .then(cred => {
+      if (pic) {
+        const reader = new FileReader();
+        reader.onload = () => {
+          // Save base64 string into Realtime DB
+          usersRef.child(cred.user.uid).update({
+            profilePic: reader.result
+          });
+        };
+        reader.readAsDataURL(pic);
+      }
+    })
+    .catch(err => alert(err.message));
+}
 
   function logout() {
   auth.signOut().then(() => {
@@ -385,7 +445,7 @@ function removeFriend(friendId, friendUsername) {
       <img src="${msg.profilePic || 'https://via.placeholder.com/32'}" />
       <b class="${isUserMessage ? 'active-user' : ''}">${isUserMessage ? 'You' : msg.sender}:</b>&nbsp;
 
-      <span class="${isUserMessage ? 'user-message' : 'other-message'}">${msg.text}</span>
+      <span class="${isUserMessage ? 'user-message' : 'other-message'}" style="word-break: break-word;" >${msg.text}</span>
       <span class="time">${time}</span>
     `;
     messagesDiv.appendChild(el);
@@ -509,7 +569,7 @@ function deleteGroupChat(groupId, groupName) {
     <img src="${msg.profilePic || 'https://via.placeholder.com/32'}" />
     <b class="${isUserMessage ? 'active-user' : 'other-username'}">${isUserMessage ? 'You' : msg.sender}:</b>&nbsp;
 
-    <span class="${isUserMessage ? 'user-message' : 'other-message'}">${msg.text}</span>
+    <span class="${isUserMessage ? 'user-message' : 'other-message'}" style="word-break: break-word;" >${msg.text}</span>
     <span class="time">${time}</span>
   `;
 
@@ -612,7 +672,38 @@ messageInput.addEventListener("keypress", function(event) {
   }
 });
 
+messageInput.addEventListener("paste", async function (event) {
+  const items = event.clipboardData.items;
+  for (const item of items) {
+    if (item.type.startsWith("image/")) {
+      const file = item.getAsFile();
+      if (file) {
+        const storageRef = storage.ref(`chat_images/${Date.now()}_${file.name}`);
+        const uploadTask = storageRef.put(file);
+        
+        uploadTask.on("state_changed", null, console.error, () => {
+          uploadTask.snapshot.ref.getDownloadURL().then(url => {
+            const msg = {
+              sender: username,
+              text: `<img src="${url}" class="pasted-image" />`,
+              profilePic: profilePicURL,
+              timestamp: Date.now()
+            };
 
+            if (currentGroupId) {
+              db.ref("groupMessages/" + currentGroupId).push(msg);
+            } else if (currentChatUser) {
+              const roomId = chatRoomId(username, currentChatUser.username);
+              db.ref("messages/" + roomId).push(msg);
+              sendTypingStatus(false);
+            }
+          });
+        });
+      }
+    }
+  }
+});
+     
 </script>
 <style>/* Default (light mode) border color */
 #friendsList button {

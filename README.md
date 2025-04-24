@@ -17,3 +17,12 @@
 9. Profile picture change on login
 10. Added pastable images
 11. Fixed invisible messages in light mode
+
+
+#Patch Section:
+##2 Every time a change is made, or feature is added, it will be listed here:
+
+Added profile picture change on login
+Removed Profile borders
+Fixed invisible messages in light mode
+Added pastable images

@@ -15,20 +15,20 @@
 
 /* Dark mode Delete button */
 body.dark-mode #groupList button.delete-group {
-  background-color: none; /* White background */
-  color: red; /* Red text */
+  background-color: none; 
+  color: red; 
 }
        
 /* Default (Light mode) button color */
 #groupList button.add-user {
-  background-color: none; /* Black button */
-  color: black; /* White text */
+  background-color: none; 
+  color: black; 
 }
 
 /* Dark mode button color */
 body.dark-mode #groupList button.add-user {
-  background-color: none; /* White button */
-  color: white; /* Black text */
+  background-color: none; 
+  color: white; 
 }
 
        
@@ -238,8 +238,8 @@ body.dark-mode .chat-tab.active {
 }
 
 #usernameToAdd {
-    width: 100%;
-    padding: 10px;
+    width: 90%;
+    padding: 8px;
     margin: 10px 0;
 }
 
@@ -453,19 +453,11 @@ statusRef.on("value", snapshot => {
         <span style="cursor:pointer;color:blue;" onclick="chatWithFriend('${friend.username}')">
           ${friend.username}
         </span>
-        <button onclick="removeFriend('${child.key}', '${friend.username}')" 
-                style="
-                  margin-left:10px;
-                  font-weight:bold;
-                  font-size:0.52em;
-                  text-transform:uppercase;
-                  color:red;
-                  background:none;
-                  border: 1px solid black;
-                  cursor:pointer;
-                ">
-          remove
-        </button>
+        <button onclick="removeFriend('${child.key}', '${friend.username}')"
+    class="remove-friend"
+    style="margin-left:10px; font-weight:bold; font-size:0.52em; text-transform:uppercase; cursor:pointer;">
+    Remove
+</button>
       `;
       friendsList.appendChild(li);
     });
@@ -871,7 +863,7 @@ body.dark-mode #friendsList button {
     position: absolute;
     top: 10px;
     right: 10px;
-    font-size: 20px;
+    font-size: 30px;
     color: #aaa;
     background: none;
     border: none;
@@ -882,7 +874,9 @@ body.dark-mode #friendsList button {
     color: black;
 }
 
-/* Add User Button Style */
+#addUserModal h2 {
+    color: white;     
+
 #addUserButton {
     margin-top: 10px;
     padding: 10px;
@@ -890,11 +884,21 @@ body.dark-mode #friendsList button {
     color: white;
     border: none;
     cursor: pointer;
-    border-radius: 5px;
+
 }
 
-#addUserButton:hover {
-    background-color: darkgreen;
+
+/* Default (Light mode) Remove Friend button */
+#friendsList button.remove-friend {
+  background-color: none;
+  color: red;
+  
+}
+
+/* Dark mode Remove Friend button */
+body.dark-mode #friendsList button.remove-friend {
+  background-color: none;
+  color: red; 
 }
 </style>
 

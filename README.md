@@ -33,5 +33,5 @@
 8. Changed UI for add user to groupchat button
 9. Changed UI for remove friend button
 10. FIXED UI for remove friend button
-11. Added change username function (not currently working)
+11. Added change username function (If it doesnt work, try a second or third time, and if it still doesnt work, contact me)
 12. Working on attach downloadable file function

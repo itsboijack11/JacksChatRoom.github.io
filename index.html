@@ -7,6 +7,11 @@
   <link rel="icon" type="image/x-icon" href="/images/favicon.ico" />
   <style>
 
+#friendsList button.remove-friend {
+  background-color: none;
+  color: red;  /* Keep the text red in light mode */
+}
+       
 /* Default (Light mode) Delete button */
 #groupList button.delete-group {
   background-color: none; /* Black background */
@@ -293,13 +298,21 @@ body.dark-mode .chat-tab.active {
 
   <div id="settingsPanel">
     <h4>Settings</h4>
+
+    <!-- Change Username Button -->
+    <button id="changeUsernameButton" onclick="changeUsername()">Change Username</button><br />
+
+    <!-- Change Password Button -->
     <button onclick="changePassword()">Change Password</button><br />
+
+    <!-- Delete Account Button -->
     <button onclick="deleteAccount()">Delete Account</button><br />
+
+    <!-- Dark Mode Toggle -->
     <label>
       <input type="checkbox" id="darkModeToggle" onchange="toggleDarkMode()" />
       Dark Mode
     </label>
-  </div>
 </div>
 
 <!-- Firebase SDK -->
@@ -362,6 +375,37 @@ statusRef.on("value", snapshot => {
       db.ref("messages/" + roomId).remove();
     }
   }
+function changeUsername() {
+    
+    const newUsername = prompt("Enter your new username:");
+    
+    if (newUsername && newUsername.trim() !== "") {
+        
+        db.ref("users").orderByChild("username").equalTo(newUsername).once("value")
+            .then(snapshot => {
+                if (snapshot.exists()) {
+                    
+                    alert("This username is already taken. Please choose another one.");
+                } else {
+                    
+                    usersRef.child(currentUser.uid).update({ username: newUsername })
+                        .then(() => {
+                            alert("Username successfully updated!");
+                            
+                            document.getElementById("userDisplay").textContent = newUsername;
+                        })
+                        .catch(error => {
+                            alert("Error updating username: " + error.message);
+                        });
+                }
+            })
+            .catch(error => {
+                alert("Error checking username: " + error.message);
+            });
+    } else {
+        alert("Username cannot be empty.");
+    }
+}
 
   function register() {
     const email = document.getElementById("email").value;
@@ -390,7 +434,7 @@ statusRef.on("value", snapshot => {
       if (pic) {
         const reader = new FileReader();
         reader.onload = () => {
-          // Save base64 string into Realtime DB
+          
           usersRef.child(cred.user.uid).update({
             profilePic: reader.result
           });
@@ -401,15 +445,37 @@ statusRef.on("value", snapshot => {
     .catch(err => alert(err.message));
 }
 
-  function logout() {
-  auth.signOut().then(() => {
-    // Clear the profile picture from the UI after logout
-    document.getElementById("userDisplay").innerHTML = 'You have logged out.';
+function logout() {
+  if (auth.currentUser) {
+    auth.signOut()
+      .then(() => {
+        console.log("User logged out.");
+        
+        
+        const chatSection = document.getElementById("chatSection");
+        const authSection = document.getElementById("authSection");
+        
+        if (chatSection) {
+          chatSection.classList.add("hidden");
+        }
+        
+        if (authSection) {
+          authSection.classList.remove("hidden");
+        }
 
-    // Allow the user to change their profile picture while logged out
-    document.getElementById("changePicSection").style.display = 'block';
-  }).catch(err => alert('Logout failed: ' + err.message));
+        
+        currentUser = null;
+        currentChatUser = null;
+        currentGroupId = null;
+        
+        
+      })
+      .catch(error => {
+        console.error("Logout failed:", error.message);
+      });
+  }
 }
+
 
   function chatRoomId(u1, u2) {
     return [u1, u2].sort().join("_");
@@ -441,7 +507,7 @@ statusRef.on("value", snapshot => {
 
   function loadFriendsList() {
   const friendsList = document.getElementById("friendsList");
-  friendsList.innerHTML = "";  // Clear existing list
+  friendsList.innerHTML = "";  
 
   usersRef.child(currentUser.uid).child("friends").once("value").then(snapshot => {
     snapshot.forEach(child => {
@@ -507,7 +573,7 @@ function removeFriend(friendId, friendUsername) {
     const time = new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     const el = document.createElement("div");
     el.className = "msg";
-    const isUserMessage = msg.sender === username;  // Check if this message is from the current user
+    const isUserMessage = msg.sender === username; 
     el.innerHTML = `
       <img src="${msg.profilePic || 'https://via.placeholder.com/32'}" />
       <b class="${isUserMessage ? 'active-user' : ''}">${isUserMessage ? 'You' : msg.sender}:</b>&nbsp;
@@ -566,18 +632,18 @@ function removeFriend(friendId, friendUsername) {
 
  function loadGroupList() {
     const list = document.getElementById("groupList");
-    list.innerHTML = ""; // Clear the list before loading new items
+    list.innerHTML = ""; 
 
     db.ref("groups").once("value").then(snap => {
         snap.forEach(groupSnap => {
             const group = groupSnap.val();
             const groupId = groupSnap.key;
 
-            // Check if the current user is a member of the group
+            
             if (group.members && group.members[currentUser.uid]) {
                 const li = document.createElement("li");
 
-                // Create the group item HTML with the Delete and Add buttons
+                
                 li.innerHTML = `
                     <span style="cursor:pointer;color:green;" 
                         onclick="enterGroupChat('${groupId}', '${group.name}')">
@@ -595,7 +661,7 @@ function removeFriend(friendId, friendUsername) {
 </button>
                 `;
                 
-                // Append the group to the list
+                
                 list.appendChild(li);
             }
         });
@@ -605,7 +671,7 @@ function removeFriend(friendId, friendUsername) {
 }
 
 
-// New deleteGroup function
+
 function deleteGroupChat(groupId, groupName) {
   if (confirm(`Are you sure you want to delete the group "${groupName}"? This action cannot be undone.`)) {
     db.ref("groups/" + groupId).remove()
@@ -666,22 +732,31 @@ function deleteGroupChat(groupId, groupName) {
     }
   }
 
-  function toggleDarkMode() {
+  
+function toggleDarkMode() {
     const isDark = document.getElementById("darkModeToggle").checked;
-    document.body.classList.toggle("dark-mode", isDark); // Toggle dark mode class
-    localStorage.setItem("darkMode", isDark); // Save the state in localStorage
+    document.body.classList.toggle("dark-mode", isDark); 
+    localStorage.setItem("darkMode", isDark);  
 }
 
+
+window.addEventListener("load", () => {
+    const dark = localStorage.getItem("darkMode") === "true";
+    document.getElementById("darkModeToggle").checked = dark;
+    document.body.classList.toggle("dark-mode", dark);
+});
+
+
 function handleAddUserClick(groupId) {
-    // Store the current groupId to add a user to the correct group
+  
     currentGroupId = groupId;
 
-    // Show the modal to add a user
+    
     document.getElementById("addUserModal").style.display = "block";
 }
 
 function closeModal() {
-    // Hide the modal when the close button is clicked
+    
     document.getElementById("addUserModal").style.display = "none";
 }
  
@@ -694,20 +769,20 @@ function addUserToGroup() {
         return;
     }
 
-    // Check if the username exists in the users database
+    
     db.ref("users").orderByChild("username").equalTo(usernameToAdd).once("value")
     .then(snapshot => {
         const userData = snapshot.val();
         
         if (userData) {
-            // Get the user ID from the username (assuming username is unique)
+            
             const userId = Object.keys(userData)[0];
 
-            // Add the user to the group's member list
+            
             db.ref("groups/" + currentGroupId + "/members/" + userId).set(true)
             .then(() => {
                 alert(`${usernameToAdd} has been added to the group.`);
-                closeModal(); // Close the modal after adding the user
+                closeModal(); 
             })
             .catch(error => {
                 alert("Error adding user: " + error.message);
@@ -727,7 +802,7 @@ function addUserToGroup() {
   });
 
   auth.onAuthStateChanged(user => {
-  // If the user is logged in
+  
   if (user) {
     currentUser = user;
     document.getElementById("authSection").classList.add("hidden");
@@ -743,7 +818,7 @@ function addUserToGroup() {
       last_changed: firebase.database.ServerValue.TIMESTAMP,
     };
 
-    // Monitor connection state
+    
     const connectedRef = db.ref(".info/connected");
     connectedRef.on("value", function (snap) {
       if (snap.val() === false) {
@@ -758,7 +833,7 @@ function addUserToGroup() {
         });
     });
 
-    // Existing logic for fetching user details
+    
     usersRef.child(user.uid).once("value").then(snap => {
       const data = snap.val();
       username = data.username;
@@ -773,7 +848,7 @@ function addUserToGroup() {
       loadGroupList();
     });
   } else {
-    // If the user is logged out
+    
     currentUser = null;
     document.getElementById("authSection").classList.remove("hidden");
     document.getElementById("chatSection").classList.add("hidden");
@@ -781,12 +856,11 @@ function addUserToGroup() {
 });
 
 
-// Add event listener for the Enter key press
 messageInput.addEventListener("keypress", function(event) {
-  // Check if the key pressed is "Enter" (key code 13)
-  if (event.key === "Enter" && !event.shiftKey) {  // !event.shiftKey ensures it doesn't trigger when Shift+Enter is pressed
-    event.preventDefault();  // Prevent the default behavior of creating a new line
-    sendMessage();  // Send the message when Enter is pressed
+  
+  if (event.key === "Enter" && !event.shiftKey) { 
+    event.preventDefault();
+    sendMessage();  
   }
 });
 
@@ -825,31 +899,31 @@ messageInput.addEventListener("paste", async function (event) {
 
      
 </script>
-<style>/* Default (light mode) border color */
+<style>
 #friendsList button {
-  border: 1px solid black; /* Light mode border color */
+  border: 1px solid black; 
 }
 
-/* Dark mode border color (increased specificity) */
+
 body.dark-mode #friendsList button {
-  border: 1px solid white !important; /* Dark mode border color */
+  border: 1px solid white !important; 
 }
 
-/* Modal background */
+
 #addUserModal {
-    display: none; /* Hidden by default */
+    display: none; 
     position: fixed;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent background */
+    background-color: rgba(0, 0, 0, 0.5); 
     justify-content: center;
     align-items: center;
-    z-index: 1000; /* Make sure it sits above other content */
+    z-index: 1000; 
 }
 
-/* Modal content */
+
 .modal-content {
     background-color: black;
     padding: 20px;
@@ -887,19 +961,48 @@ body.dark-mode #friendsList button {
 
 }
 
-
-/* Default (Light mode) Remove Friend button */
-#friendsList button.remove-friend {
-  background-color: none;
-  color: red;
-  
+#settingsPanel {
+    padding: 20px;
+    background-color: #f4f4f4;
+    border-radius: 8px;
+    width: 300px;
 }
 
-/* Dark mode Remove Friend button */
-body.dark-mode #friendsList button.remove-friend {
-  background-color: none;
-  color: red; 
+#settingsPanel button {
+    padding: 10px;
+    margin-bottom: 10px;
+    font-size: 14px;
+    width: 100%;
+    cursor: pointer;
+    border: none;
+    border-radius: 5px;
 }
+
+#changeUsernameButton {
+    background-color: #4CAF50;  
+    color: white;
+}
+
+#settingsPanel button:nth-child(2) {
+    background-color: #FF9800;  
+    color: white;
+}
+
+#settingsPanel button:nth-child(3) {
+    background-color: #f44336;  /
+    color: white;
+}
+
+#settingsPanel label {
+    display: flex;
+    align-items: center;
+    margin-top: 20px;
+}
+
+#settingsPanel input[type="checkbox"] {
+    margin-right: 10px;
+}
+
 </style>
 
 <div id="addUserModal" style="display:none;">

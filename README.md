@@ -17,6 +17,7 @@
 9. Profile picture change on login
 10. Added pastable images
 11. Fixed invisible messages in light mode
+12. Fixed UI for Remove friend button
 
 
 # Patch Section:
@@ -31,3 +32,6 @@
 7. Changed UI for delete groupchat button
 8. Changed UI for add user to groupchat button
 9. Changed UI for remove friend button
+10. FIXED UI for remove friend button
+11. Added change username function (not currently working)
+12. Working on attach downloadable file function

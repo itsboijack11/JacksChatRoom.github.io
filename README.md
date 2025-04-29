@@ -4,22 +4,6 @@
 # NOTICE
 ## this isnt a perfect chatroom so there are imperfections. For example: the pfp dont work. I'm trying to fix that. (Update 04/24/25 - Fixed by Finley)
 
-# Special thanks
-## Special thanks to my friend Finley for adding all of this
-1. Added group chat function
-2. Added group chat delete function
-3. Added remove friend function
-4. Added prompt to delete friend
-5. Added prompt to delete group chat
-6. Added prompt to log out
-7. UI improvements
-8. Users name is now blue when they send messages
-9. Profile picture change on login
-10. Added pastable images
-11. Fixed invisible messages in light mode
-12. Fixed UI for Remove friend button
-
-
 # Patch Section:
 ## Every time a change is made, or feature is added, it will be listed here:
 
@@ -35,3 +19,6 @@
 10. FIXED UI for remove friend button
 11. Added change username function (If it doesnt work, try a second or third time, and if it still doesnt work, contact me)
 12. Working on attach downloadable file function
+13. Changed Settings UI
+14. Grouped all the CSS into one group, for more efficiency
+15. Added Quicker page loading, so when you scroll up in a chat, then it will load the older messages

@@ -3,34 +3,33 @@
 <head> 
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Jacks Chat Room</title>
+  <title>JF Chat Room</title>
   <link rel="icon" type="image/x-icon" href="/images/favicon.ico" />
   <style>
 
 #friendsList button.remove-friend {
   background-color: none;
-  color: red;  /* Keep the text red in light mode */
+  color: red; 
 }
        
-/* Default (Light mode) Delete button */
+
 #groupList button.delete-group {
-  background-color: none; /* Black background */
-  color: red; /* Red text */
+  background-color: none; 
+  color: red; 
 }
 
-/* Dark mode Delete button */
 body.dark-mode #groupList button.delete-group {
   background-color: none; 
   color: red; 
 }
        
-/* Default (Light mode) button color */
+
 #groupList button.add-user {
   background-color: none; 
   color: black; 
 }
 
-/* Dark mode button color */
+
 body.dark-mode #groupList button.add-user {
   background-color: none; 
   color: white; 
@@ -49,15 +48,15 @@ body.dark-mode #groupList button.add-user {
 
 .user-message {
   font-weight: bold;
-  color: black; /* Default for light mode */
+  color: black; 
 }
 
-/* When dark mode is active */
+
 body.dark-mode .user-message {
   color: white;
 }
 
-/* Profile pictures (light mode) */
+
 #messages img:not(.pasted-image), 
 #friendsList img:not(.pasted-image) { 
   border-radius: 50%;
@@ -65,14 +64,14 @@ body.dark-mode .user-message {
   box-shadow: 0 0 6px rgba(0, 0, 0, 0.2);
 }
 
-/* Profile pictures (dark mode) */
+
 body.dark-mode #messages img:not(.pasted-image),
 body.dark-mode #friendsList img:not(.pasted-image) {
   border-color: white;
   box-shadow: 0 0 6px rgba(255, 255, 255, 0.2);
 }
 
-/* Pasted images (light mode) */
+
 #messages img.pasted-image {
   border: none;
   border-radius: 1px;
@@ -82,12 +81,10 @@ body.dark-mode #friendsList img:not(.pasted-image) {
   box-shadow: 0 0 4px rgba(0, 0, 0, 0.1);
 }
 
-/* Optional: Pasted image dark mode tweak */
 body.dark-mode #messages img.pasted-image {
   box-shadow: 0 0 4px rgba(255, 255, 255, 0.1);
 }
 
-/* Force specific styling for images, increase specificity */
 body #messages img:not(.pasted-image),
 body #friendsList img:not(.pasted-image) {
   border-radius: 50%;
@@ -95,19 +92,14 @@ body #friendsList img:not(.pasted-image) {
   box-shadow: 0 0 6px rgba(0, 0, 0, 0.2) !important;
 }
 
-/* Force dark mode override for profile pictures */
 body.dark-mode #messages img:not(.pasted-image),
 body.dark-mode #friendsList img:not(.pasted-image) {
   border-color: white !important;
   box-shadow: 0 0 6px rgba(255, 255, 255, 0.2) !important;
-}
-
-
-
-       
+}      
     body { font-family: Arial; max-width: 700px; margin: auto; padding: 20px; transition: background 0.3s, color 0.3s; }
     #messages { border: 1px solid #ccc; height: 300px; overflow-y: scroll; padding: 10px; margin-top: 10px; }
-    #messageInput { width: 70%; }
+    #messageInput { width: 65%; }
     .hidden { display: none; }
     .chat-tab { cursor: pointer; padding: 5px; margin-right: 5px; background: #ddd; border-radius: 5px; display: inline-block; }
     .chat-tab.active { background: #bbb; }
@@ -164,24 +156,23 @@ body.dark-mode #friendsList img:not(.pasted-image) {
       border: 1px solid #555;
     }
     #settingsPanel {
-      position: absolute;
-      right: 20px;
-      top: 100px;
-      width: 200px;
-      background: #f5f5f5;
-      border: 1px solid #ccc;
-      padding: 10px;
-      border-radius: 8px;
-    }
+  position: absolute;
+  right: 20px;
+  top: 100px;
+  width: 200px;
+  background: #f5f5f5; 
+  border: 2px solid #ccc;
+  padding: 10px;
+  border-radius: 8px;
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 20px;
+}
     body.dark-mode #settingsPanel {
-      background: #2c2c2c;
-      border-color: #555;
-    }
-    #settingsPanel button, #settingsPanel label {
-      margin-bottom: 10px;
-      width: 100%;
-    }
-/* Other user's message (normal, black) */
+  background: #2c2c2c; 
+  border-color: #555;
+}
+
 .other-message {
   font-weight: normal;
   color: black;
@@ -195,13 +186,13 @@ body.dark-mode .other-message {
   color: blue;
   text-transform: uppercase;
 }
-/* Default light mode style */
+
 .chat-tab.active {
   font-weight: bold;
   color: black;
-  background-color: #e1e2e6; /* Dark white */
+  background-color: #e1e2e6; 
 }
-/* Dark mode override */
+
 body.dark-mode .chat-tab.active {
   color: white;
   background-color: #333;
@@ -209,12 +200,12 @@ body.dark-mode .chat-tab.active {
 
 .modal {
     display: none; 
-    position: fixed; /
+    position: fixed; 
     z-index: 1; 
     left: 0;
     top: 0;
     width: 100%; 
-    height: 100%; 
+    height: 90%; 
     overflow: auto; 
     background-color: rgb(0,0,0); /
     background-color: rgba(0,0,0,0.4); 
@@ -248,14 +239,160 @@ body.dark-mode .chat-tab.active {
     margin: 10px 0;
 }
 
-       
+   #friendsList button {
+  border: 1px solid black; 
+}
+
+
+body.dark-mode #friendsList button {
+  border: 1px solid white !important; 
+}
+
+
+#addUserModal {
+    display: none; 
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5); 
+    justify-content: center;
+    align-items: center;
+    z-index: 1000; 
+}
+
+.modal-content {
+    background-color: black;
+    padding: 20px;
+    border-radius: 5px;
+    width: 300px;
+    text-align: center;
+}
+
+.close-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    font-size: 30px;
+    color: #aaa;
+    background: none;
+    border: none;
+    cursor: pointer;
+}
+
+.close-btn:hover {
+    color: black;
+}
+
+    
+
+#addUserButton {
+    margin-top: 10px;
+    padding: 10px;
+    background-color: green;
+    color: white;
+    border: none;
+    cursor: pointer;
+
+}
+
+#settingsPanel {
+  max-height: 90vh;     
+  overflow-y: auto;         
+  padding: 20px;
+  background-color: #222;  
+  border-radius: 8px;
+}
+
+#settingsPanel button {
+    padding: 10px;
+    margin-bottom: 10px;
+    font-size: 13px;
+    width: 100%;
+    cursor: pointer;
+    border: none;
+    border-radius: 5px;
+}
+
+
+
+#settingsPanel button:nth-child(2) {
+  background-color: #FF9800;  
+  color: white;
+}
+
+
+
+#settingsPanel label {
+    display: flex;
+    align-items: center;
+    margin-top: 20px;
+}
+
+#settingsPanel input[type="checkbox"] {
+    margin-right: 10px;
+}
+
+.modal {
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+.modal.show {
+  opacity: 1;
+}
+
+.loading-indicator {
+   text-align: center;
+   font-size: 14px;
+   color: #888;
+   margin: 10px 0;
+}    
+
+#settingsPanel {
+  position: absolute;
+  right: 20px;
+  top: 100px;
+  width: 200px;
+  background: #f5f5f5 !important; 
+  border: 2px solid #ccc;
+  padding: 10px;
+  border-radius: 8px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+
+body.dark-mode #settingsPanel {
+  background: #2c2c2c !important; 
+  border-color: #555;
+}
+
+#settingsPanel button {
+  background-color: #dcdcdc;  
+  color: black;  
+}
+
+body.dark-mode #settingsPanel button {
+  background-color: black;  
+  color: white;  
+}
+
+
+#changeUsernameButton {
+  background-color: #dcdcdc !important;
+  color: black !important;
+}
+
+body.dark-mode #changeUsernameButton {
+  background-color: black !important;
+  color: white !important;
+}
   </style>
 </head>
 <body>
-
-
      
-<!-- Auth -->
+
 <div id="authSection">
   <input id="email" placeholder="Email" /><br />
   <input id="password" type="password" placeholder="Password" /><br />
@@ -264,7 +401,7 @@ body.dark-mode .chat-tab.active {
   <button onclick="register()">Register</button>
   <button onclick="login()">Login</button>
 </div>
-<!-- Chat -->
+
 <div id="chatSection" class="hidden">
   <p class="welcome">Welcome, <span id="userDisplay"></span>! <button onclick="logout()">Logout</button></p>
     <p id="onlineCount" style="font-weight: bold; color: lightgreen;">People Online: 0</p>
@@ -277,7 +414,7 @@ body.dark-mode .chat-tab.active {
   <h4>Your Friends</h4>
   <ul id="friendsList"></ul>
 
-  <!-- Group Chat UI -->
+  
   <div style="margin-top: 20px;">
     <h4>Create Group Chat</h4>
     <input id="groupName" placeholder="Group Name" />
@@ -291,6 +428,16 @@ body.dark-mode .chat-tab.active {
   <div id="chatTabs"></div>
   <div id="messages"></div>
   <div id="typingIndicator"></div>
+  <div id="toastContainer" style="position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 9999;">
+  </div>
+  <div id="addUserModal" style="display:none;">
+    <div class="modal-content">
+        <span class="close-btn" onclick="closeModal()">×</span>
+        <h2>Add a User to the Group</h2>
+        <input type="text" id="usernameToAdd" placeholder="Enter username" />
+        <button onclick="addUserToGroup()">Add User</button>
+    </div>
+</div>
 
   <input id="messageInput" placeholder="Type your message..." oninput="sendTypingStatus(true)" />
   <button onclick="sendMessage()">Send</button>
@@ -299,23 +446,23 @@ body.dark-mode .chat-tab.active {
   <div id="settingsPanel">
     <h4>Settings</h4>
 
-    <!-- Change Username Button -->
-    <button id="changeUsernameButton" onclick="changeUsername()">Change Username</button><br />
+    
+    <button id="changeUsernameButton" onclick="changeUsername()">Change Username</button>
 
-    <!-- Change Password Button -->
-    <button onclick="changePassword()">Change Password</button><br />
+    
+    <button id="changePasswordButton" onclick="changePassword()">Change Password</button><br />
 
-    <!-- Delete Account Button -->
+    
     <button onclick="deleteAccount()">Delete Account</button><br />
 
-    <!-- Dark Mode Toggle -->
+    
     <label>
       <input type="checkbox" id="darkModeToggle" onchange="toggleDarkMode()" />
       Dark Mode
     </label>
 </div>
 
-<!-- Firebase SDK -->
+
 <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
@@ -366,7 +513,14 @@ statusRef.on("value", snapshot => {
   const typingIndicator = document.getElementById("typingIndicator");
   const chatTabs = document.getElementById("chatTabs");
 
-  function clearChat() {
+  function openModal() {
+  document.getElementById("addUserModal").classList.add("show");
+}
+function closeModal() {
+  document.getElementById("addUserModal").classList.remove("show");
+}
+     
+       function clearChat() {
     messagesDiv.innerHTML = "";
     if (currentGroupId) {
       db.ref("groupMessages/" + currentGroupId).remove();
@@ -476,6 +630,43 @@ function logout() {
   }
 }
 
+function showToast(message, type = 'info') {
+    const toast = document.createElement('div');
+    toast.classList.add('toast');
+    toast.classList.add(type);  // Add the type for different styles (info, success, error, etc.)
+
+    toast.innerHTML = `
+        <div style="background-color: ${getToastBgColor(type)}; color: white; padding: 10px 20px; border-radius: 5px; max-width: 300px;">
+            <span>${message}</span>
+        </div>
+    `;
+    
+    // Append the toast to the container
+    const toastContainer = document.getElementById('toastContainer');
+    toastContainer.appendChild(toast);
+
+    // Auto-hide the toast after 3 seconds
+    setTimeout(() => {
+        toastContainer.removeChild(toast);
+    }, 3000);
+}
+
+function getToastBgColor(type) {
+    switch (type) {
+        case 'success':
+            return 'green';
+        case 'error':
+            return 'red';
+        case 'info':
+            return 'blue';
+        case 'warning':
+            return 'orange';
+        default:
+            return 'gray';
+    }
+}
+
+
 
   function chatRoomId(u1, u2) {
     return [u1, u2].sort().join("_");
@@ -563,31 +754,68 @@ function removeFriend(friendId, friendUsername) {
     chatTabs.appendChild(tab);
   }
 
-  function loadMessages() {
-  messagesDiv.innerHTML = "";
+  let lastMessageKey = null;
+const messagesPerPage = 20;  // Number of messages to load at once
+
+function loadMessages() {
+  messagesDiv.innerHTML = "";  // Clear previous messages
   const roomId = chatRoomId(username, currentChatUser.username);
   const msgRef = db.ref("messages/" + roomId);
-  msgRef.off();
-  msgRef.on("child_added", snap => {
+
+  // Initially, load the last 'messagesPerPage' messages
+  msgRef.limitToLast(messagesPerPage).on("child_added", snap => {
     const msg = snap.val();
     const time = new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
     const el = document.createElement("div");
     el.className = "msg";
-    const isUserMessage = msg.sender === username; 
+    const isUserMessage = msg.sender === username;
     el.innerHTML = `
       <img src="${msg.profilePic || 'https://via.placeholder.com/32'}" />
       <b class="${isUserMessage ? 'active-user' : ''}">${isUserMessage ? 'You' : msg.sender}:</b>&nbsp;
-
       <span class="${isUserMessage ? 'user-message' : 'other-message'}" style="word-break: break-word;" >${msg.text}</span>
       <span class="time">${time}</span>
     `;
     messagesDiv.appendChild(el);
-    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;  // Scroll to bottom
+
+    lastMessageKey = snap.key;  // Store the last message key for pagination
   });
+
+  // Check for typing indicator
   typingRef.child(roomId).on("value", snap => {
     typingIndicator.textContent = snap.val() && snap.val() !== username ? "..." : "";
   });
+
+  // Scroll event listener to load more messages when scrolling to the top
+  messagesDiv.addEventListener('scroll', () => {
+    if (messagesDiv.scrollTop === 0) {  // User has scrolled to the top
+      loadOlderMessages(roomId);
+    }
+  });
 }
+
+// Load older messages when the user scrolls to the top
+function loadOlderMessages(roomId) {
+   const loadingIndicator = document.createElement('div');
+   loadingIndicator.classList.add('loading-indicator');
+   loadingIndicator.textContent = 'Loading older messages...';
+   messagesDiv.prepend(loadingIndicator); // Show the loading indicator
+
+   const msgRef = db.ref("messages/" + roomId);
+   msgRef.orderByKey().endAt(lastMessageKey).limitToLast(messagesPerPage).once('child_added', snap => {
+      const msg = snap.val();
+      // Existing message processing...
+      
+      loadingIndicator.remove(); // Remove the loading indicator once messages are loaded
+   }).catch(error => {
+      loadingIndicator.remove(); // Remove the loading indicator on error
+      console.error("Error loading older messages: ", error);
+      alert("Error loading older messages. Please try again.");
+   });
+}
+
+
 
   function sendMessage() {
     const text = messageInput.value.trim();
@@ -899,120 +1127,8 @@ messageInput.addEventListener("paste", async function (event) {
 
      
 </script>
-<style>
-#friendsList button {
-  border: 1px solid black; 
-}
 
 
-body.dark-mode #friendsList button {
-  border: 1px solid white !important; 
-}
-
-
-#addUserModal {
-    display: none; 
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.5); 
-    justify-content: center;
-    align-items: center;
-    z-index: 1000; 
-}
-
-
-.modal-content {
-    background-color: black;
-    padding: 20px;
-    border-radius: 5px;
-    width: 300px;
-    text-align: center;
-}
-
-/* Close button */
-.close-btn {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    font-size: 30px;
-    color: #aaa;
-    background: none;
-    border: none;
-    cursor: pointer;
-}
-
-.close-btn:hover {
-    color: black;
-}
-
-#addUserModal h2 {
-    color: white;     
-
-#addUserButton {
-    margin-top: 10px;
-    padding: 10px;
-    background-color: green;
-    color: white;
-    border: none;
-    cursor: pointer;
-
-}
-
-#settingsPanel {
-    padding: 20px;
-    background-color: #f4f4f4;
-    border-radius: 8px;
-    width: 300px;
-}
-
-#settingsPanel button {
-    padding: 10px;
-    margin-bottom: 10px;
-    font-size: 14px;
-    width: 100%;
-    cursor: pointer;
-    border: none;
-    border-radius: 5px;
-}
-
-#changeUsernameButton {
-    background-color: #4CAF50;  
-    color: white;
-}
-
-#settingsPanel button:nth-child(2) {
-    background-color: #FF9800;  
-    color: white;
-}
-
-#settingsPanel button:nth-child(3) {
-    background-color: #f44336;  /
-    color: white;
-}
-
-#settingsPanel label {
-    display: flex;
-    align-items: center;
-    margin-top: 20px;
-}
-
-#settingsPanel input[type="checkbox"] {
-    margin-right: 10px;
-}
-
-</style>
-
-<div id="addUserModal" style="display:none;">
-    <div class="modal-content">
-        <span class="close-btn" onclick="closeModal()">×</span>
-        <h2>Add a User to the Group</h2>
-        <input type="text" id="usernameToAdd" placeholder="Enter username" />
-        <button onclick="addUserToGroup()">Add User</button>
-    </div>
-</div>
      
 </body>
 </html>

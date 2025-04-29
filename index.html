@@ -459,8 +459,15 @@ body.dark-mode #changeUsernameButton {
     <label>
       <input type="checkbox" id="darkModeToggle" onchange="toggleDarkMode()" />
       Dark Mode
-    </label>
-</div>
+ </label>
+
+  <label>
+  <input type="checkbox" id="profanityFilterToggle" onchange="toggleProfanityFilter()" />
+  Profanity Filter
+</label>
+
+  
+  </div>
 
 
 <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
@@ -561,6 +568,41 @@ function changeUsername() {
     }
 }
 
+    let isProfanityFilterEnabled = false;
+
+// List of bad words to be filtered
+const badWords = ['fuck', 'shit', 'pussy', 'nigga', 'nigger', 'n1gga', 'n1gger', 'bitch', 'b1tch', 'fucc', 'fuc', 'fukk', 'fukc', 'whore', 'hoe', 'pssy', 'pusy', 'sh1t', 'dick', 'd1ck', 'cunt', 'cuntt'];  
+
+// Function to toggle the profanity filter state
+function toggleProfanityFilter() {
+  const checkbox = document.getElementById('profanityFilterToggle');
+  isProfanityFilterEnabled = checkbox.checked;
+  localStorage.setItem('profanityFilter', isProfanityFilterEnabled);  // Save the state to localStorage
+  console.log("Profanity filter enabled:", isProfanityFilterEnabled);
+}
+
+// Function to filter profanity from the text
+function filterProfanity(text) {
+  if (!isProfanityFilterEnabled) return text;  // If the filter is off, return the original text
+  
+  // Loop through the bad words list and replace each one
+  for (const badWord of badWords) {
+    const regex = new RegExp(badWord, 'gi');
+    text = text.replace(regex, '****');  // Replace bad word with asterisks
+  }
+  return text;
+}
+
+// Function to apply the saved profanity filter setting when the page loads
+function loadProfanityFilterSetting() {
+  const savedFilterSetting = localStorage.getItem('profanityFilter');
+  
+  if (savedFilterSetting !== null) {
+    isProfanityFilterEnabled = savedFilterSetting === 'true';  // Convert the string back to a boolean
+    document.getElementById('profanityFilterToggle').checked = isProfanityFilterEnabled;  // Update the checkbox
+  }
+}
+     
   function register() {
     const email = document.getElementById("email").value;
     const pass = document.getElementById("password").value;
@@ -773,7 +815,8 @@ function loadMessages() {
     el.innerHTML = `
       <img src="${msg.profilePic || 'https://via.placeholder.com/32'}" />
       <b class="${isUserMessage ? 'active-user' : ''}">${isUserMessage ? 'You' : msg.sender}:</b>&nbsp;
-      <span class="${isUserMessage ? 'user-message' : 'other-message'}" style="word-break: break-word;" >${msg.text}</span>
+      <span class="${isUserMessage ? 'user-message' : 'other-message'}" style="word-break: break-word;" >${filterProfanity(msg.text)}</span>
+
       <span class="time">${time}</span>
     `;
     messagesDiv.appendChild(el);
@@ -817,19 +860,38 @@ function loadOlderMessages(roomId) {
 
 
 
-  function sendMessage() {
-    const text = messageInput.value.trim();
-    if (!text) return;
-    const msg = { sender: username, text, profilePic: profilePicURL, timestamp: Date.now() };
-    if (currentGroupId) {
-      db.ref("groupMessages/" + currentGroupId).push(msg);
-    } else if (currentChatUser) {
-      const roomId = chatRoomId(username, currentChatUser.username);
-      db.ref("messages/" + roomId).push(msg);
-      sendTypingStatus(false);
-    }
-    messageInput.value = "";
+function sendMessage() {
+  let text = messageInput.value.trim();  // Get the trimmed input text
+  
+  if (!text) return;  // If the message is empty, do nothing
+  
+  // Pass the message through the filter if the profanity filter is enabled
+  text = filterProfanity(text);
+  
+  const msg = { 
+    sender: username, 
+    text, 
+    profilePic: profilePicURL, 
+    timestamp: Date.now() 
+  };
+  
+  // Send the message to the appropriate chat
+  if (currentGroupId) {
+    db.ref("groupMessages/" + currentGroupId).push(msg);
+  } else if (currentChatUser) {
+    const roomId = chatRoomId(username, currentChatUser.username);
+    db.ref("messages/" + roomId).push(msg);
+    sendTypingStatus(false);  // Reset typing status
   }
+
+  // Clear the input field after sending the message
+  messageInput.value = "";
+}
+
+// Call this function when the page loads to apply the saved profanity filter setting
+window.onload = function() {
+  loadProfanityFilterSetting();  // Apply the profanity filter setting
+}
 
   function sendTypingStatus(isTyping) {
     if (!currentChatUser) return;
@@ -933,7 +995,8 @@ function deleteGroupChat(groupId, groupName) {
     <img src="${msg.profilePic || 'https://via.placeholder.com/32'}" />
     <b class="${isUserMessage ? 'active-user' : 'other-username'}">${isUserMessage ? 'You' : msg.sender}:</b>&nbsp;
 
-    <span class="${isUserMessage ? 'user-message' : 'other-message'}" style="word-break: break-word;" >${msg.text}</span>
+    <span class="${isUserMessage ? 'user-message' : 'other-message'}" style="word-break: break-word;" >${filterProfanity(msg.text)}</span>
+
     <span class="time">${time}</span>
   `;
 
@@ -959,6 +1022,26 @@ function deleteGroupChat(groupId, groupName) {
       });
     }
   }
+     
+function displayMessage(msg) {
+  const messagesContainer = document.getElementById('messages');
+  if (!messagesContainer) return;
+
+  const messageElement = document.createElement('div');
+  messageElement.classList.add('msg');
+
+  const senderElement = document.createElement('strong');
+  senderElement.textContent = msg.sender + ': ';
+
+  const textElement = document.createElement('span');
+  textElement.textContent = filterProfanity(msg.text);  
+
+  messageElement.appendChild(senderElement);
+  messageElement.appendChild(textElement);
+
+  messagesContainer.appendChild(messageElement);
+  messagesContainer.scrollTop = messagesContainer.scrollHeight;
+}
 
   
 function toggleDarkMode() {
@@ -966,6 +1049,7 @@ function toggleDarkMode() {
     document.body.classList.toggle("dark-mode", isDark); 
     localStorage.setItem("darkMode", isDark);  
 }
+
 
 
 window.addEventListener("load", () => {
@@ -987,6 +1071,8 @@ function closeModal() {
     
     document.getElementById("addUserModal").style.display = "none";
 }
+
+
  
 
 function addUserToGroup() {

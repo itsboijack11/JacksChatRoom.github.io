@@ -7,6 +7,16 @@
   <link rel="icon" type="image/x-icon" href="/images/favicon.ico" />
   <style>
 
+.chat-tab {
+  background-color: #f0f0f0;
+  color: #000;
+}
+
+body.dark-mode .chat-tab {
+  background-color: #333;
+  color: #fff;
+}
+       
 #friendsList button.remove-friend {
   background-color: none;
   color: red; 
@@ -785,17 +795,29 @@ function removeFriend(friendId, friendUsername) {
     startPrivateChat();
   }
 
-  function setupChatTab(name) {
-    const tab = document.createElement("span");
-    tab.className = "chat-tab active";
-    tab.textContent = name;
-    tab.onclick = () => {
-      document.getElementById("targetUsername").value = name;
-      startPrivateChat();
-    };
-    chatTabs.innerHTML = "";
-    chatTabs.appendChild(tab);
+function setupChatTab(name) {
+  const existingTab = Array.from(chatTabs.children).find(tab => tab.textContent === name);
+  if (existingTab) return;
+
+  const tab = document.createElement("span");
+  tab.className = "chat-tab";
+  tab.textContent = name;
+  tab.onclick = () => {
+    document.getElementById("targetUsername").value = name;
+    startPrivateChat();
+  };
+
+  chatTabs.appendChild(tab);
+
+  // Save to localStorage
+  const savedTabs = JSON.parse(localStorage.getItem("chatTabs") || "[]");
+  if (!savedTabs.includes(name)) {
+    savedTabs.push(name);
+    localStorage.setItem("chatTabs", JSON.stringify(savedTabs));
   }
+}
+
+
 
   let lastMessageKey = null;
 const messagesPerPage = 20;  // Number of messages to load at once
@@ -839,6 +861,10 @@ function loadMessages() {
   });
 }
 
+function restoreChatTabs() {
+  const savedTabs = JSON.parse(localStorage.getItem("chatTabs") || "[]");
+  savedTabs.forEach(name => setupChatTab(name));
+}
 
 
 
@@ -871,9 +897,10 @@ function sendMessage() {
   messageInput.value = "";
 }
 
-// Call this function when the page loads to apply the saved profanity filter setting
+
 window.onload = function() {
-  loadProfanityFilterSetting();  // Apply the profanity filter setting
+  loadProfanityFilterSetting(); 
+restoreChatTabs();
 }
 
   function sendTypingStatus(isTyping) {

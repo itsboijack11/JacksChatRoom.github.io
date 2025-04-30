@@ -23,3 +23,6 @@
 14. Grouped all the CSS into one group, for more efficiency
 15. Added Quicker page loading, so when you scroll up in a chat, then it will load the older messages
 16. Added Togglable Profanity filter
+17. Made profanity filter much more advanced
+18. Added Current chat tabs for multiple people
+19. Changed Current chat tabs UI to follow dark mode stardards

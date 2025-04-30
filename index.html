@@ -571,29 +571,30 @@ function changeUsername() {
     let isProfanityFilterEnabled = false;
 
 // List of bad words to be filtered
-const badWords = ['fuck', 'shit', 'pussy', 'nigga', 'nigger', 'n1gga', 'n1gger', 'bitch', 'b1tch', 'fucc', 'fuc', 'fukk', 'fukc', 'whore', 'hoe', 'pssy', 'pusy', 'sh1t', 'dick', 'd1ck', 'cunt', 'cuntt'];  
+const badWords = ['fuck', 'shit', 'pussy', 'nigga', 'nigg', 'n1gg', 'bitch', 'b1tch', 'fucc', 'fuc', 'fukk', 'fukc', 'whore', 'hoe', 'pssy', 'pusy', 'sh1t', 'dick', 'd1ck', 'cunt', 'cuntt', 'fucking', 'fcking', 'fukking', 'shiti', 'motherfuck', 'motherfucc', 'motherfck', 'motherfukk'];  
 
-// Function to toggle the profanity filter state
+
 function toggleProfanityFilter() {
   const checkbox = document.getElementById('profanityFilterToggle');
   isProfanityFilterEnabled = checkbox.checked;
-  localStorage.setItem('profanityFilter', isProfanityFilterEnabled);  // Save the state to localStorage
+  localStorage.setItem('profanityFilter', isProfanityFilterEnabled);  
   console.log("Profanity filter enabled:", isProfanityFilterEnabled);
 }
 
-// Function to filter profanity from the text
+
 function filterProfanity(text) {
-  if (!isProfanityFilterEnabled) return text;  // If the filter is off, return the original text
-  
-  // Loop through the bad words list and replace each one
+  if (!isProfanityFilterEnabled) return text;
+
   for (const badWord of badWords) {
     const regex = new RegExp(badWord, 'gi');
-    text = text.replace(regex, '****');  // Replace bad word with asterisks
+    text = text.replace(regex, match => '*'.repeat(match.length));
   }
+
   return text;
 }
 
-// Function to apply the saved profanity filter setting when the page loads
+
+
 function loadProfanityFilterSetting() {
   const savedFilterSetting = localStorage.getItem('profanityFilter');
   
@@ -838,25 +839,7 @@ function loadMessages() {
   });
 }
 
-// Load older messages when the user scrolls to the top
-function loadOlderMessages(roomId) {
-   const loadingIndicator = document.createElement('div');
-   loadingIndicator.classList.add('loading-indicator');
-   loadingIndicator.textContent = 'Loading older messages...';
-   messagesDiv.prepend(loadingIndicator); // Show the loading indicator
 
-   const msgRef = db.ref("messages/" + roomId);
-   msgRef.orderByKey().endAt(lastMessageKey).limitToLast(messagesPerPage).once('child_added', snap => {
-      const msg = snap.val();
-      // Existing message processing...
-      
-      loadingIndicator.remove(); // Remove the loading indicator once messages are loaded
-   }).catch(error => {
-      loadingIndicator.remove(); // Remove the loading indicator on error
-      console.error("Error loading older messages: ", error);
-      alert("Error loading older messages. Please try again.");
-   });
-}
 
 
 

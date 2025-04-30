@@ -22,3 +22,4 @@
 13. Changed Settings UI
 14. Grouped all the CSS into one group, for more efficiency
 15. Added Quicker page loading, so when you scroll up in a chat, then it will load the older messages
+16. Added Togglable Profanity filter

@@ -7,15 +7,7 @@
   <link rel="icon" type="image/x-icon" href="/images/favicon.ico" />
   <style>
 
-.chat-tab {
-  background-color: #f0f0f0;
-  color: #000;
-}
 
-body.dark-mode .chat-tab {
-  background-color: #333;
-  color: #fff;
-}
        
 #friendsList button.remove-friend {
   background-color: none;
@@ -398,6 +390,40 @@ body.dark-mode #changeUsernameButton {
   background-color: black !important;
   color: white !important;
 }
+
+
+.chat-tab {
+  background-color: #f0f0f0;
+  color: #000;
+  cursor: pointer;
+  padding: 5px 10px;  
+  margin-right: 5px;
+  border-radius: 5px;
+  display: inline-block;
+  font-weight: normal;  
+  transition: background-color 0.2s ease, font-weight 0.2s ease;
+}
+
+.chat-tab:hover {
+  background-color: #e0e0e0;  
+}
+
+body.dark-mode .chat-tab {
+  background-color: #333;
+  color: #fff;
+}
+
+
+.chat-tab.active {
+  background-color: #bbb;
+  font-weight: bold;  
+  color: #007bff;  
+}
+
+body.dark-mode .chat-tab.active {
+  background-color: #444;  
+  color: #00bfff;  
+}
   </style>
 </head>
 <body>
@@ -581,7 +607,7 @@ function changeUsername() {
     let isProfanityFilterEnabled = false;
 
 // List of bad words to be filtered
-const badWords = ['fuck', 'shit', 'pussy', 'nigga', 'nigg', 'n1gg', 'bitch', 'b1tch', 'fucc', 'fuc', 'fukk', 'fukc', 'whore', 'hoe', 'pssy', 'pusy', 'sh1t', 'dick', 'd1ck', 'cunt', 'cuntt', 'fucking', 'fcking', 'fukking', 'shiti', 'motherfuck', 'motherfucc', 'motherfck', 'motherfukk'];  
+const badWords = ['fuck', 'shit', 'pussy', 'nigga', 'nigger', 'n1gger', 'bitch', 'b1tch', 'fucc', 'fuc', 'fukk', 'fukc', 'whore', 'hoe', 'pssy', 'pusy', 'sh1t', 'dick', 'd1ck', 'cunt', 'cuntt', 'fucking', 'fcking', 'fukking', 'shiti', 'motherfucker', 'motherfuccer', 'motherfcker', 'motherfukker', 'n1gga', 'fucker', 'fuker', 'fukka', 'fuccer'];  
 
 
 function toggleProfanityFilter() {
@@ -595,13 +621,23 @@ function toggleProfanityFilter() {
 function filterProfanity(text) {
   if (!isProfanityFilterEnabled) return text;
 
-  for (const badWord of badWords) {
-    const regex = new RegExp(badWord, 'gi');
-    text = text.replace(regex, match => '*'.repeat(match.length));
+  const sortedBadWords = [...badWords].sort((a, b) => b.length - a.length);
+
+  for (const badWord of sortedBadWords) {
+    // Use word boundary if needed; otherwise, ensure full match
+    const regex = new RegExp(`\\b${badWord}\\b`, 'gi');
+    text = text.replace(regex, match => {
+      const visible = match.slice(0, 2);
+      const stars = '*'.repeat(match.length - 2);
+      return visible + stars;
+    });
   }
 
   return text;
 }
+
+
+
 
 
 
@@ -802,9 +838,12 @@ function setupChatTab(name) {
   const tab = document.createElement("span");
   tab.className = "chat-tab";
   tab.textContent = name;
+
+  // Handle tab click
   tab.onclick = () => {
     document.getElementById("targetUsername").value = name;
-    startPrivateChat();
+    startPrivateChat(); // Start the private chat
+    setActiveChatTab(name); // Set the clicked tab as active
   };
 
   chatTabs.appendChild(tab);
@@ -816,6 +855,20 @@ function setupChatTab(name) {
     localStorage.setItem("chatTabs", JSON.stringify(savedTabs));
   }
 }
+
+// Function to set the clicked tab as active and remove the active class from others
+function setActiveChatTab(name) {
+  // Remove the active class from all chat tabs
+  const tabs = document.querySelectorAll('.chat-tab');
+  tabs.forEach(tab => tab.classList.remove('active'));
+
+  // Add the active class to the clicked tab
+  const activeTab = Array.from(tabs).find(tab => tab.textContent === name);
+  if (activeTab) {
+    activeTab.classList.add('active');
+  }
+}
+
 
 
 

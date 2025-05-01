@@ -28,3 +28,4 @@
 19. Changed Current chat tabs UI to follow dark mode stardards
 20. Current chat tabs now display in blue who you are currently messaging
 21. Added profile picture In top left
+22. Added Global Chat In top right

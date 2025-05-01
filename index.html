@@ -7,6 +7,26 @@
   <link rel="icon" type="image/x-icon" href="/images/favicon.ico" />
   <style>
 
+#globalChatBtn {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 12px 20px;
+    font-size: 16px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 25px;
+    cursor: pointer;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: background-color 0.3s;
+}
+
+#globalChatBtn:hover {
+    background-color: #0056b3;
+}
+
+       
 .profile-pic {
   width: 32px;
   height: 32px;
@@ -435,7 +455,10 @@ body.dark-mode .chat-tab.active {
 </head>
 <body>
      
-
+<button id="globalChatBtn" style="position: absolute; top: 10px; right: 10px; padding: 10px; background-color: blue; color: white; border: none; border-radius: 5px; cursor: pointer;">
+    Global Chat
+</button>
+     
 <div id="authSection">
   <input id="email" placeholder="Email" /><br />
   <input id="password" type="password" placeholder="Password" /><br />
@@ -661,6 +684,37 @@ function loadProfanityFilterSetting() {
     document.getElementById('profanityFilterToggle').checked = isProfanityFilterEnabled;  // Update the checkbox
   }
 }
+
+function clearMessages() {
+  messagesDiv.innerHTML = ""; // Clear previous messages in the chat window
+}
+
+     
+let currentChatName = null; // Track the current chat being viewed
+
+function openChat(name) {
+  // If the same chat is clicked again, do nothing
+  if (currentChatName === name) return;
+
+  // Track the current chat name
+  currentChatName = name;
+
+  // Show a loading spinner or a blank area to indicate loading
+  document.getElementById("loadingSpinner").classList.remove("hidden");
+  
+  // Optionally, you can hide the messages section or show a loading indicator in the messages div
+  messagesDiv.innerHTML = "";  // Clear current messages immediately
+
+  // Load the messages for the new chat (this triggers the loading of messages in the background)
+  loadMessages(name);
+  
+  // Hide the spinner once the new messages are loaded (this will happen in your existing loadMessages logic)
+  document.getElementById("loadingSpinner").classList.add("hidden");
+}
+
+
+
+
      
   function register() {
     const email = document.getElementById("email").value;
@@ -885,14 +939,17 @@ function setActiveChatTab(name) {
 
 
   let lastMessageKey = null;
-const messagesPerPage = 20;  // Number of messages to load at once
+const messagesPerPage = 10;  
+let isAtBottom = true;  
 
 function loadMessages() {
-  messagesDiv.innerHTML = "";  // Clear previous messages
+  messagesDiv.innerHTML = "";  
   const roomId = chatRoomId(username, currentChatUser.username);
   const msgRef = db.ref("messages/" + roomId);
 
-  // Initially, load the last 'messagesPerPage' messages
+  
+  msgRef.off("child_added");
+
   msgRef.limitToLast(messagesPerPage).on("child_added", snap => {
     const msg = snap.val();
     const time = new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -904,27 +961,36 @@ function loadMessages() {
       <img src="${msg.profilePic || 'https://via.placeholder.com/32'}" />
       <b class="${isUserMessage ? 'active-user' : ''}">${isUserMessage ? 'You' : msg.sender}:</b>&nbsp;
       <span class="${isUserMessage ? 'user-message' : 'other-message'}" style="word-break: break-word;" >${filterProfanity(msg.text)}</span>
-
       <span class="time">${time}</span>
     `;
-    messagesDiv.appendChild(el);
-    messagesDiv.scrollTop = messagesDiv.scrollHeight;  // Scroll to bottom
+    messagesDiv.appendChild(el);  
 
-    lastMessageKey = snap.key;  // Store the last message key for pagination
+    
+    if (isAtBottom) {
+      messagesDiv.scrollTop = messagesDiv.scrollHeight;  
+    }
+
+    lastMessageKey = snap.key;  
   });
 
-  // Check for typing indicator
+  
   typingRef.child(roomId).on("value", snap => {
     typingIndicator.textContent = snap.val() && snap.val() !== username ? "..." : "";
   });
 
-  // Scroll event listener to load more messages when scrolling to the top
+  
   messagesDiv.addEventListener('scroll', () => {
-    if (messagesDiv.scrollTop === 0) {  // User has scrolled to the top
+    
+    if (messagesDiv.scrollTop === 0) {
+      isAtBottom = false;
       loadOlderMessages(roomId);
+    } else {
+      
+      isAtBottom = messagesDiv.scrollHeight - messagesDiv.scrollTop === messagesDiv.clientHeight;
     }
   });
 }
+
 
 function restoreChatTabs() {
   const savedTabs = JSON.parse(localStorage.getItem("chatTabs") || "[]");
@@ -935,45 +1001,54 @@ function restoreChatTabs() {
 
 
 function sendMessage() {
-  let text = messageInput.value.trim();  // Get the trimmed input text
-  
-  if (!text) return;  // If the message is empty, do nothing
-  
-  // Pass the message through the filter if the profanity filter is enabled
-  text = filterProfanity(text);
-  
+  // Load profanity filter setting and restore chat tabs
+  loadProfanityFilterSetting();
+  restoreChatTabs();
+
+  let text = messageInput.value.trim();  
+
+  if (!text) return;  // Don't send empty messages
+
+  text = filterProfanity(text);  // Apply profanity filter
+
   const msg = { 
     sender: username, 
     text, 
     profilePic: profilePicURL, 
     timestamp: Date.now() 
   };
-  
-  // Send the message to the appropriate chat
-  if (currentGroupId) {
+
+  // Check if the current group is the global chat
+  if (currentGroupId === globalChatId) {
+    db.ref("globalChatMessages").push(msg);  // Send message to global chat
+  } else if (currentGroupId) {
+    // If it's a group chat
     db.ref("groupMessages/" + currentGroupId).push(msg);
   } else if (currentChatUser) {
+    // If it's a private chat with a user
     const roomId = chatRoomId(username, currentChatUser.username);
     db.ref("messages/" + roomId).push(msg);
-    sendTypingStatus(false);  // Reset typing status
+    sendTypingStatus(false);  // Stop typing status
   }
 
-  // Clear the input field after sending the message
-  messageInput.value = "";
+  messageInput.value = "";  // Clear input field after sending
 }
-
-
-window.onload = function() {
+     window.onload = function() {
   loadProfanityFilterSetting(); 
 restoreChatTabs();
+
 }
 
-  function sendTypingStatus(isTyping) {
-    if (!currentChatUser) return;
-    const roomId = chatRoomId(username, currentChatUser.username);
+ let typingTimeout;
+function sendTypingStatus(isTyping) {
+  if (!currentChatUser) return;
+  const roomId = chatRoomId(username, currentChatUser.username);
+
+  clearTimeout(typingTimeout); 
+  typingTimeout = setTimeout(() => {
     typingRef.child(roomId).set(isTyping ? username : "");
-    if (isTyping) setTimeout(() => typingRef.child(roomId).set(""), 3000);
-  }
+  }, 900); 
+}
 
   function createGroup() {
     const name = document.getElementById("groupName").value.trim();
@@ -1102,21 +1177,42 @@ function displayMessage(msg) {
   const messagesContainer = document.getElementById('messages');
   if (!messagesContainer) return;
 
+  // Create a new message container
   const messageElement = document.createElement('div');
   messageElement.classList.add('msg');
 
+  // If this message is from the user, highlight it differently (optional)
+  const isUserMessage = msg.sender === username;
+  messageElement.classList.add(isUserMessage ? 'user-message' : 'other-message');
+
+  // Sender element
   const senderElement = document.createElement('strong');
   senderElement.textContent = msg.sender + ': ';
 
+  // Text element with profanity filter
   const textElement = document.createElement('span');
-  textElement.textContent = filterProfanity(msg.text);  
+  textElement.textContent = filterProfanity(msg.text);
 
+  // Optional: Add timestamp (if available)
+  if (msg.timestamp) {
+    const timestampElement = document.createElement('span');
+    const time = new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    timestampElement.classList.add('time');
+    timestampElement.textContent = ` (${time})`;
+    messageElement.appendChild(timestampElement);
+  }
+
+  // Append the sender and text to the message element
   messageElement.appendChild(senderElement);
   messageElement.appendChild(textElement);
 
+  // Append message to the container
   messagesContainer.appendChild(messageElement);
+
+  // Auto-scroll to the bottom if user is at the bottom
   messagesContainer.scrollTop = messagesContainer.scrollHeight;
 }
+
 
   
 function toggleDarkMode() {
@@ -1145,6 +1241,19 @@ function handleAddUserClick(groupId) {
 function closeModal() {
     
     document.getElementById("addUserModal").style.display = "none";
+}
+
+// Preload messages for the new chat room before the user clicks it
+function preloadChatMessages(name) {
+  // This function could be triggered when the user hovers over the friend’s name or on some other event
+  const roomId = chatRoomId(username, name);
+  const msgRef = db.ref("messages/" + roomId).limitToLast(10);  // Preload last 10 messages, for example
+
+  msgRef.once("value", snapshot => {
+    const messages = snapshot.val();
+    // Store the preloaded messages in memory or localStorage for fast retrieval when the user switches to this chat
+    localStorage.setItem(`chatMessages_${roomId}`, JSON.stringify(messages));
+  });
 }
 
 
@@ -1197,6 +1306,9 @@ function addUserToGroup() {
     document.getElementById("authSection").classList.add("hidden");
     document.getElementById("chatSection").classList.remove("hidden");
 
+    // Show Global Chat button when logged in
+    document.getElementById("globalChatBtn").style.display = 'block';
+
     const userStatusRef = db.ref("/status/" + user.uid);
     const isOfflineForDatabase = {
       state: "offline",
@@ -1207,7 +1319,6 @@ function addUserToGroup() {
       last_changed: firebase.database.ServerValue.TIMESTAMP,
     };
 
-    
     const connectedRef = db.ref(".info/connected");
     connectedRef.on("value", function (snap) {
       if (snap.val() === false) {
@@ -1222,13 +1333,12 @@ function addUserToGroup() {
         });
     });
 
-    
     usersRef.child(user.uid).once("value").then(snap => {
       const data = snap.val();
       username = data.username;
       profilePicURL = data.profilePic || "";
       document.getElementById("userDisplay").textContent = username;
-     document.getElementById("profilePicDisplay").src = profilePicURL || "https://via.placeholder.com/32";
+      document.getElementById("profilePicDisplay").src = profilePicURL || "https://via.placeholder.com/32";
       const lastUser = localStorage.getItem("lastChatUser");
       if (lastUser) {
         document.getElementById("targetUsername").value = lastUser;
@@ -1237,13 +1347,17 @@ function addUserToGroup() {
       loadFriendsList();
       loadGroupList();
     });
+
   } else {
-    
     currentUser = null;
     document.getElementById("authSection").classList.remove("hidden");
     document.getElementById("chatSection").classList.add("hidden");
+
+    // Hide Global Chat button when logged out
+    document.getElementById("globalChatBtn").style.display = 'none';
   }
 });
+
 
 
 messageInput.addEventListener("keypress", function(event) {
@@ -1286,6 +1400,74 @@ messageInput.addEventListener("paste", async function (event) {
   }
 });
 
+let globalChatId = 'global_chat';  // Define a unique room ID for global chat
+
+// Event listener for the Global Chat button
+document.getElementById("globalChatBtn").addEventListener("click", function() {
+    // Switch to global chat room
+    currentGroupId = globalChatId;
+    currentChatUser = null; // Clear current chat user
+
+    // Set up the global chat interface
+    chatTabs.innerHTML = `<span class="chat-tab active">Global Chat</span>`;
+    messagesDiv.innerHTML = ""; // Clear messages
+    loadGlobalChatMessages();  // Load messages for the global chat room
+});
+
+// Function to load global chat messages
+function loadGlobalChatMessages() {
+    const msgRef = db.ref("globalChatMessages");  // Define a location for global chat messages in Firebase
+
+    // Listen for new messages added to the global chat
+    msgRef.off("child_added");
+    msgRef.limitToLast(10).on("child_added", snap => {
+        const msg = snap.val();
+        const time = new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+        const el = document.createElement("div");
+        el.className = "msg";
+        const isUserMessage = msg.sender === username;
+        el.innerHTML = `
+            <img src="${msg.profilePic || 'https://via.placeholder.com/32'}" />
+            <b class="${isUserMessage ? 'active-user' : ''}">${isUserMessage ? 'You' : msg.sender}:</b>&nbsp;
+            <span class="${isUserMessage ? 'user-message' : 'other-message'}" style="word-break: break-word;" >${filterProfanity(msg.text)}</span>
+            <span class="time">${time}</span>
+        `;
+        messagesDiv.appendChild(el);
+
+        // Auto-scroll to the bottom if user is at the bottom
+        if (isAtBottom) {
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+    });
+}
+
+// Send a message to the Global Chat
+function sendGlobalChatMessage() {
+    let text = messageInput.value.trim();  
+    if (!text) return;  
+
+    text = filterProfanity(text);
+
+    const msg = { 
+        sender: username, 
+        text, 
+        profilePic: profilePicURL, 
+        timestamp: Date.now() 
+    };
+
+    db.ref("globalChatMessages").push(msg);  // Push message to the global chat
+
+    messageInput.value = "";  // Clear input after sending
+}
+
+// Listen for the "Enter" key to send the global chat message
+messageInput.addEventListener("keypress", function(event) {
+    if (event.key === "Enter" && !event.shiftKey) {  // Only send message when "Enter" key is pressed
+        event.preventDefault();
+        sendGlobalChatMessage();  // Send message to global chat
+    }
+});
 
      
 </script>

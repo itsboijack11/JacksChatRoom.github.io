@@ -7,6 +7,13 @@
   <link rel="icon" type="image/x-icon" href="/images/favicon.ico" />
   <style>
 
+.profile-pic {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  vertical-align: middle;
+  margin-left: 0px;
+}
 
        
 #friendsList button.remove-friend {
@@ -439,8 +446,13 @@ body.dark-mode .chat-tab.active {
 </div>
 
 <div id="chatSection" class="hidden">
-  <p class="welcome">Welcome, <span id="userDisplay"></span>! <button onclick="logout()">Logout</button></p>
-    <p id="onlineCount" style="font-weight: bold; color: lightgreen;">People Online: 0</p>
+  <p class="welcome">
+  Welcome, <span id="userDisplay"></span>!
+  <img id="profilePicDisplay" class="profile-pic" />
+
+  <button onclick="logout()">Logout</button>
+  </p>
+  <p id="onlineCount" style="font-weight: bold; color: lightgreen;">People Online: 0</p>
 
   <div class="search-bar-container">
     <input id="targetUsername" placeholder="Enter username to start a chat" />
@@ -1216,6 +1228,7 @@ function addUserToGroup() {
       username = data.username;
       profilePicURL = data.profilePic || "";
       document.getElementById("userDisplay").textContent = username;
+     document.getElementById("profilePicDisplay").src = profilePicURL || "https://via.placeholder.com/32";
       const lastUser = localStorage.getItem("lastChatUser");
       if (lastUser) {
         document.getElementById("targetUsername").value = lastUser;

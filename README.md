@@ -2,7 +2,7 @@
 ## a simple chatroom made with google firebase
 
 # NOTICE
-## this isnt a perfect chatroom so there are imperfections. For example: the pfp dont work. I'm trying to fix that. (Update 04/24/25 - Fixed by Akainvisss)
+## this isnt a perfect chatroom so there are imperfections. For example: the pfp dont work. I'm trying to fix that. (Update 04/24/25 - Fixed by Finley)
 
 # Patch Section:
 ## Every time a change is made, or feature is added, it will be listed here:
@@ -27,3 +27,4 @@
 18. Added Current chat tabs for multiple people
 19. Changed Current chat tabs UI to follow dark mode stardards
 20. Current chat tabs now display in blue who you are currently messaging
+21. Added profile picture In top left

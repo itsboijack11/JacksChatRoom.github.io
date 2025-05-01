@@ -26,3 +26,4 @@
 17. Made profanity filter much more advanced
 18. Added Current chat tabs for multiple people
 19. Changed Current chat tabs UI to follow dark mode stardards
+20. Current chat tabs now display in blue who you are currently messaging

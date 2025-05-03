@@ -2,7 +2,7 @@
 ## a simple chatroom made with google firebase
 
 # NOTICE
-## this isnt a perfect chatroom so there are imperfections. For example: the pfp dont work. I'm trying to fix that. (Update 04/24/25 - Fixed by Finley)
+## Join our [discord](https://discord.gg/FGkGHCPS) to recomend or get help with certain thing on the chat app! 
 
 # Patch Section:
 ## Every time a change is made, or feature is added, it will be listed here:

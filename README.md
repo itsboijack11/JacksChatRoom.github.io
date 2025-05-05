@@ -29,3 +29,4 @@
 20. Current chat tabs now display in blue who you are currently messaging
 21. Added profile picture In top left
 22. Added Global Chat In top right
+23. Added more bad words to the profanity filter
